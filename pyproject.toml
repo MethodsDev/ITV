@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = 'integrative_transcriptomics_viewer'
+description = 'Transcriptome-focused visualization package started as a fork of the genomeview package.'
+readme = 'README.md'
+requires-python = '>=3.9'
+license = {file = 'LICENSE'}
+authors = [
+    {name = 'Christophe Georgescu', email = 'cgeorges@broadinstitute.org'},
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["dependencies", "version"]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["templates/*.html"]
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
+version = {attr = "integrative_transcriptomics_viewer.__version__"}
+
+[tool.ruff]
+src = ["src"]
+select = ["E", "F", "I", "A"]
+ignore = ["E501"]

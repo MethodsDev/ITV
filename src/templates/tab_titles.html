@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="tab">
+    {% for tab in tabs %}
+    <button type="button" class="collapsible" data-target="barcode_{{ tab.tab_id }}">{{ tab.tab_name }}</button>
+    {% endfor %}
+</div>
+{% for tab in tabs %}
+<div id="barcode_{{ tab.tab_id }}" class="tabcontent" style="display: none;">
+    <div class="custom-svg-container" style="overflow-x: auto; overflow-y: hidden; width: 100%;">
+        {% include "bam_buttons_views.html" %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% for tab_section in tab_sections %}
+<div id="{{ bam.unique_id }}" class="itv-content" style="display: block;">
+    <div class="itv-content static-itv-content">
+        {{ tab_section.static_svg | safe }}
+    </div>
+    <div id="svgContainer" class="resizable">
+        {{ tab_section.resizable_svg | safe }}
+    </div>
+</div>
+{% endfor %}

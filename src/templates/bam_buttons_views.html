@@ -1,0 +1,24 @@
+{% for tab in tab.tab_sections %}
+    <button type="button" class="collapsible {% if tab.expended %}active{% endif %}" data-target="{{ tab.unique_id }}">{{ tab.name }}</button>
+{% endfor %}
+    <br/>
+
+{% if tab.shared_static_svg %}
+    <div class="itv-content static-itv-content">
+        {{ tab.shared_static_svg | safe }}
+    </div>
+{% endif %}
+
+
+{% for tab_section in tab.tab_sections %}
+    <div id="{{ tab_section.unique_id }}" class="itv-content" style="display: {% if tab_section.expended %}block{% else %}none{% endif %};">
+        <div class="itv-content static-itv-content">
+            {{ tab_section.static_svg | safe }}
+        </div>
+        {% if tab_section.resizable_svg %}
+        <div id="svgContainer" class="resizable">
+            {{ tab_section.resizable_svg | safe }}
+        </div>
+        {% endif %}
+    </div>
+{% endfor %}

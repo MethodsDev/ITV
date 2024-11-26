@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{{ page_title }}</title>
+        <style>
+            /* Style the button that is used to open and close the collapsible content */
+            .collapsible { 
+                background-color: #eee; 
+                color: #444; 
+                cursor: pointer; 
+                padding: 2px; 
+                border: none;
+                text-align: left; 
+                outline: none; 
+                font-size: 15px;
+            }
+
+            /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+            .active, .collapsible:hover {
+                background-color: #ccc;
+            }
+
+            .itv-content {
+                padding: 0 0px;
+                display: block;
+                overflow: hidden;
+                background-color: #f1f1f1;
+            }
+
+            .custom-svg-container .static-itv-content {
+                display: block;
+            }
+
+            .custom-svg-container svg {
+                max-width: none;
+                height: auto;
+            }
+
+            .tab {
+                overflow: hidden;
+                border: 1px solid #ccc;
+                background-color: #f1f1f1;
+            }
+
+            .tab button {
+                background-color: inherit;
+                float: left;
+                border: none;
+                outline: none;
+                cursor: pointer;
+                padding: 14px 16px;
+                transition: 0.3s;
+                font-size: 15px;
+            }
+
+            .tab button:hover {
+                background-color: #ddd;
+            }
+
+            .tab button.active {
+                background-color: #ccc;
+            }
+
+            .tabcontent {
+                display: none;
+                padding:6px 12px;
+                border: 1px solid #ccc;
+                border-top: none;
+            }
+            
+            .resizable {
+                overflow: auto;
+                resize: both;
+                border: 1px solid black;
+                height: 300px;
+                max-width: 100%;
+                max-height: 100%;
+                min-width: 200px;
+                min-height: 50px;
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        {% block content %}{% endblock %}
+        <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+        for (i = 0; i < coll.length; i++) {
+          coll[i].addEventListener("click", function() {
+            this.classList.toggle("active");
+            var contentId = this.getAttribute("data-target");  // Get the target content ID from the button's data attribute
+            var content = document.getElementById(contentId);  // Find the corresponding content div by ID
+            content.style.display = content.style.display === "block" ? "none" : "block";
+          });
+        }
+        </script>
+    </body>
+</html>
