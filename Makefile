@@ -1,6 +1,12 @@
 # Makefile for managing the conda environment and package installation
 
-VERSION=$(shell grep -oP '^__version__\s*=\s*"\K[^\"]+' src/integrative_transcriptomics_viewer/__init__.py)
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	VERSION=$(shell /usr/bin/grep -E '^__version__\s*=\s*' src/integrative_transcriptomics_viewer/__init__.py | grep -oE '"(.+)"' | sed 's/"//g')
+endif
+ifeq ($(UNAME_S),Linux)
+	VERSION=$(shell grep -oP '^__version__\s*=\s*"\K[^\"]+' src/integrative_transcriptomics_viewer/__init__.py)
+endif
 VERSIONED_ENV_NAME=itv-$(VERSION)
 
 .PHONY: install clean update
