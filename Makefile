@@ -11,7 +11,7 @@ VERSIONED_ENV_NAME=itv-$(VERSION)
 
 .PHONY: install clean update
 
-install: check-versioned-env
+install: clean check-versioned-env
 	mamba run -n $(VERSIONED_ENV_NAME) --no-capture-output pip install .;
 
 check-versioned-env:
@@ -43,5 +43,5 @@ update:
 	fi
 
 
-devinstall: check-versioned-env
+devinstall: clean check-versioned-env
 	mamba run -n $(VERSIONED_ENV_NAME) --no-capture-output pip install -e .;
