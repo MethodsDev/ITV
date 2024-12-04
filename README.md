@@ -6,7 +6,7 @@ This Python package is based on a fork of the Genomeview package. It includes ch
 
 Requires mamba (conda)
 
-> git clone https://github.com/MethodsDev/ITV.git && cd ITV
+> git clone https://github.com/MethodsDev/ITV.git && cd ITV \
 > make install
 
 You can then activate the mamba environment with:
