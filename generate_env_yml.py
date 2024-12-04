@@ -8,7 +8,7 @@ def get_version(string):
     version_str = re.search(version_re, string, re.M).group(1)
     return version_str
 
-version = get_version(open('src/itv/__init__.py').read())
+version = get_version(open('src/integrative_transcriptomics_viewer/__init__.py').read())
 
 env_yml_content = f"""
 name: itv-{version}
