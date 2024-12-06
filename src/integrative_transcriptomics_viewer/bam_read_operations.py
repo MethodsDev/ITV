@@ -1,4 +1,5 @@
 from integrative_transcriptomics_viewer.bamtrack import VirtualBAM
+from intervaltree import Interval
 
 import pysam
 
