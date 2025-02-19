@@ -734,6 +734,7 @@ class BAMCoverageTrack(GraphTrack):
         with self.opener_fn(bam_path) as bam:
             self.bam_references = bam.references
         self.include_secondary = False
+        self.stranded_coverage = False
         self.min_dist = 0
         self.bin_size = 0
         self.tag = None
@@ -747,7 +748,9 @@ class BAMCoverageTrack(GraphTrack):
         if len(self.series) > 0 and self.cached_series:
             return
 
-        if self.tag is not None:
+        if self.stranded_coverage:
+            self.add_stranded_coverage(scale)
+        elif self.tag is not None:
             self.add_tagged_coverage(scale)
         elif self.min_dist > 0:
             self.add_peak_coverage(scale)
@@ -892,6 +895,28 @@ class BAMCoverageTrack(GraphTrack):
 
         if not (len(coverage) == 0 and len(secondary_coverage) == 0):
             self._add_multi_coverage(scale, coverage, secondary_coverage)
+
+    def add_stranded_coverage(self, scale):
+        is_fwd = (scale.strand == "+")
+
+        # adding 01 and 02 before key names for the ordering
+        coverage = {"01_sense": collections.Counter(),
+                    "02_antisense": collections.Counter()
+                   }
+
+        for read in self._get_reads(scale):
+            if (read.is_forward and is_fwd) or (read.is_reverse and not is_fwd):
+                orientation = "01_sense"
+            else:
+                orientation = "02_antisense"
+            
+            aligned_pos = read.get_reference_positions()
+            for j in aligned_pos:
+                if scale.start <= j < scale.end:
+                    coverage[orientation][j - scale.start] += 1
+
+        self._add_multi_coverage(scale, coverage, collections.defaultdict(collections.Counter))
+        
 
     def _add_multi_coverage(self, scale, coverage, secondary_coverage=None):
         """Takes a scale object and a dictionary of coverages and creates the

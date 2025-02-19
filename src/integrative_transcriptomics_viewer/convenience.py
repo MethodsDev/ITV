@@ -359,6 +359,7 @@ class Configuration:
                        coverage_height = 100,
                        coverage_tag = None,
                        coverage_tag_fn = None,
+                       coverage_by_strand = False,
                        priming_orientation = "3p",
                        vertical_layout_reads = False,
                        include_secondary = False,
@@ -471,6 +472,7 @@ class Configuration:
                 coverage_track.height = coverage_height
                 coverage_track.tag = coverage_tag
                 coverage_track.tag_fn = coverage_tag_fn
+                coverage_track.stranded_coverage = coverage_by_strand
 
                 if fill_coverage:
                     coverage_track.fill_coverage = True
@@ -1256,6 +1258,8 @@ class Configuration:
                 coverage_track_series.tag = kwargs["coverage_tag"]
             if "coverage_tag_fn" in kwargs:
                 coverage_track_series.tag_fn = kwargs["coverage_tag_fn"]
+            if "coverage_by_strand" in kwargs:
+                coverage_track_series.stranded_coverage = kwargs["coverage_by_strand"]
             coverage_track_series.layout(tmp_view.scale)
             bam_track_to_series[virtual_bam] = coverage_track_series.series
             max_coverage_dict[key] = coverage_track_series.max_y
