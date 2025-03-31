@@ -125,7 +125,7 @@ class GraphTrack(Track):
                         prev_y = y
                         continue
 
-                    if x > self.scale.end:
+                    if x >= self.scale.end - 1:
                         if started:
                             # if coverage wasn't 0 before going out of bound
                             if y1 != self.ytopixels(0) + renderer.y:
