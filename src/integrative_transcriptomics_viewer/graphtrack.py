@@ -130,13 +130,11 @@ class GraphTrack(Track):
                             # if coverage wasn't 0 before going out of bound
                             if y1 != self.ytopixels(0) + renderer.y:
                                 x1 = self.scale.topixels(self.scale.end) + renderer.x
-                                full_path += " L " + str(x1) + " " + str(y1)
+                                full_path += f" L {x1:.2f} {y1:.2f}"
                                 current_min_y = min(current_min_y, y1)
-                                # y1 = self.ytopixels(0) + renderer.y
-                                # full_path += " L " + str(x1) + " " + str(y1)
-                            # else:
+
                             y1 = self.ytopixels(0) + renderer.y
-                            full_path += " L " + str(x1) + " " + str(y1)
+                            full_path += f" L {x1:.2f} {y1:.2f}"
                         break
 
                     if not started:
@@ -144,43 +142,35 @@ class GraphTrack(Track):
                         if prev_y > 0:
                             x1 = self.scale.topixels(self.scale.start) + renderer.x
                             y1 = self.ytopixels(0) + renderer.y
-                            full_path += str(x1) + " " + str(y1)
+                            full_path += f"{x1:.2f} {y1:.2f}"
                             starting_x = x1
                             starting_y = y1
 
                             y1 = self.ytopixels(prev_y) + renderer.y
-                            full_path += " L " + str(x1) + " " + str(y1)
-
-                            # x1 = self.scale.topixels(x) + renderer.x
-                            # full_path += " L " + str(x1) + " " + str(y1)
+                            full_path += f" L {x1:.2f} {y1:.2f}"
 
                         # starting anchor point at (x, 0)
                         else:
                             y1 = self.ytopixels(0) + renderer.y
                             starting_y = y1
-                            
-                            # x1 = self.scale.topixels(x) + renderer.x
-                            # full_path += " L " + str(x1) + " " + str(y1)
 
-                        # y1 = self.ytopixels(y) + renderer.y
-                        # full_path += " L " + str(x1) + " " + str(y1)
                         current_min_y = min(current_min_y, y1)
                         started = True
 
                     # else:
                     x1 = self.scale.topixels(x) + renderer.x
                     if len(full_path) > 11:
-                        full_path += " L " + str(x1) + " " + str(y1)
+                        full_path += f" L {x1:.2f} {y1:.2f}"
                     else:
-                        full_path += str(x1) + " " + str(y1)
+                        full_path += f"{x1:.2f} {y1:.2f}"
                         starting_x = x1
 
                     y1 = self.ytopixels(y) + renderer.y
-                    full_path += " L " + str(x1) + " " + str(y1)
+                    full_path += f" L {x1:.2f} {y1:.2f}"
                     current_min_y = min(current_min_y, y1)
 
                 if len(full_path) > 11:
-                    full_path +=  " L " + str(starting_x) + " " + str(starting_y) + "\" xcenter=\"" + str((self.ytopixels(0) + current_min_y)/2) +  "\" stroke=\"" + series.color + "\" fill=\"" + series.color + "\" stroke_width=\"1\"></path>"
+                    full_path += f" L {starting_x:.2f} {starting_y:.2f}\" xcenter=\"{((self.ytopixels(0) + current_min_y)/2):.2f}\" stroke=\"{series.color}\" fill=\"{series.color}\" stroke_width=\"1\"></path>"
                 else:
                     full_path = ""
 
