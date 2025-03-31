@@ -115,6 +115,8 @@ class GraphTrack(Track):
 
                 full_path = "<path d=\"M "
                 started = False
+                starting_x = 0
+                starting_y = 0
                 prev_y = 0
                 # y1 = self.ytopixels(0) + renderer.y  # in case of empty coverage, so that the "past scale end" check doesn't error
 
@@ -123,7 +125,7 @@ class GraphTrack(Track):
                         prev_y = y
                         continue
 
-                    if x > self.scale.end:
+                    if x >= self.scale.end - 1:
                         if started:
                             # if coverage wasn't 0 before going out of bound
                             if y1 != self.ytopixels(0) + renderer.y:
@@ -143,6 +145,8 @@ class GraphTrack(Track):
                             x1 = self.scale.topixels(self.scale.start) + renderer.x
                             y1 = self.ytopixels(0) + renderer.y
                             full_path += str(x1) + " " + str(y1)
+                            starting_x = x1
+                            starting_y = y1
 
                             y1 = self.ytopixels(prev_y) + renderer.y
                             full_path += " L " + str(x1) + " " + str(y1)
@@ -153,6 +157,7 @@ class GraphTrack(Track):
                         # starting anchor point at (x, 0)
                         else:
                             y1 = self.ytopixels(0) + renderer.y
+                            starting_y = y1
                             
                             # x1 = self.scale.topixels(x) + renderer.x
                             # full_path += " L " + str(x1) + " " + str(y1)
@@ -168,13 +173,14 @@ class GraphTrack(Track):
                         full_path += " L " + str(x1) + " " + str(y1)
                     else:
                         full_path += str(x1) + " " + str(y1)
+                        starting_x = x1
 
                     y1 = self.ytopixels(y) + renderer.y
                     full_path += " L " + str(x1) + " " + str(y1)
                     current_min_y = min(current_min_y, y1)
 
                 if len(full_path) > 11:
-                    full_path +=  "\" xcenter=\"" + str((self.ytopixels(0) + current_min_y)/2) +  "\" stroke=\"" + series.color + "\" fill=\"" + series.color + "\" stroke_width=\"1\"></path>"
+                    full_path +=  " L " + str(starting_x) + " " + str(starting_y) + "\" xcenter=\"" + str((self.ytopixels(0) + current_min_y)/2) +  "\" stroke=\"" + series.color + "\" fill=\"" + series.color + "\" stroke_width=\"1\"></path>"
                 else:
                     full_path = ""
 
