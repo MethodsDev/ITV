@@ -83,18 +83,33 @@
         </style>
     </head>
     <body>
-        {% block content %}{% endblock %}
+        <div class="output-scope" id="output-{{ unique_id }}">
+            {% block content %}{% endblock %}
+        </div>
         <script>
-        var coll = document.getElementsByClassName("collapsible");
-        var i;
-        for (i = 0; i < coll.length; i++) {
-          coll[i].addEventListener("click", function() {
-            this.classList.toggle("active");
-            var contentId = this.getAttribute("data-target");  // Get the target content ID from the button's data attribute
-            var content = document.getElementById(contentId);  // Find the corresponding content div by ID
-            content.style.display = content.style.display === "block" ? "none" : "block";
-          });
-        }
+            (function() {
+                const scope = document.getElementById("output-{{ unique_id }}");
+                if (!scope) return;
+
+                function toggleCollapsible(event) {
+                    const btn = event.currentTarget;
+                    btn.classList.toggle("active");
+                    const contentId = btn.getAttribute("data-target");
+                    const content = document.getElementById(contentId);
+                    if (content) {
+                        content.style.display = content.style.display === "block" ? "none" : "block";
+                    }
+                }
+
+                const coll = scope.querySelectorAll(".collapsible");
+                coll.forEach(btn => {
+                    // Avoid double attaching
+                    if (!btn.dataset.listenerAdded) {
+                        btn.addEventListener("click", toggleCollapsible);
+                        btn.dataset.listenerAdded = "true";
+                    }
+                });
+            })();
         </script>
     </body>
 </html>
