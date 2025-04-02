@@ -1,5 +1,5 @@
 from jinja2 import Environment, PackageLoader, select_autoescape
-
+import uuid
 
 
 def get_jinja_environment():
@@ -14,7 +14,8 @@ def get_jinja_environment():
 def render_tab_titles(tabs, page_title):
     env = get_jinja_environment()
     template = env.get_template('tab_titles.html')
-    return template.render(tabs=tabs, page_title=page_title)
+    unique_id = uuid.uuid4().hex  # Unique per render
+    return template.render(tabs=tabs, page_title=page_title, unique_id=unique_id)
 
 def render_bam_buttons_views(tab):
     env = get_jinja_environment()
