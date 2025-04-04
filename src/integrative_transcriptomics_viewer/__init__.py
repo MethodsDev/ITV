@@ -7,7 +7,7 @@ from integrative_transcriptomics_viewer.quickconsensus import *
 
 from integrative_transcriptomics_viewer.axis import *
 from integrative_transcriptomics_viewer.track import *
-from integrative_transcriptomics_viewer.bamtrack import SingleEndBAMTrack, PairedEndBAMTrack, GroupedBAMTrack, VirtualBAM, BAMCoverageTrack
+from integrative_transcriptomics_viewer.bamtrack import SingleEndBAMTrack, PairedEndBAMTrack, GroupedBAMTrack, VirtualBAM, CombinedVirtualBAM, BAMCoverageTrack
 from integrative_transcriptomics_viewer.bedtrack import BEDTrack, VirtualBEDTrack
 from integrative_transcriptomics_viewer.graphtrack import *
 from integrative_transcriptomics_viewer.intervaltrack import *

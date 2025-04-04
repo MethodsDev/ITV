@@ -1,10 +1,12 @@
-from integrative_transcriptomics_viewer.bamtrack import VirtualBAM
+from integrative_transcriptomics_viewer.bamtrack import VirtualBAM, CombinedVirtualBAM
 from intervaltree import Interval
 
 import pysam
 
 def get_bam_opener(bam):
     if isinstance(bam, VirtualBAM):
+        opener_fn = lambda x: x
+    elif isinstance(bam, CombinedVirtualBAM):
         opener_fn = lambda x: x
     else:
         opener_fn = pysam.AlignmentFile

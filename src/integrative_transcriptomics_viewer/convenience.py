@@ -457,6 +457,8 @@ class Configuration:
         for key, value in bams_dict.items():
             if isinstance(value, itv.VirtualBAM):
                 opener_kwargs = {'opener_fn': lambda x: x}
+            elif isinstance(value, itv.CombinedVirtualBAM):
+                opener_kwargs = {'opener_fn': lambda x: x}
             else:
                 opener_kwargs = {}
 

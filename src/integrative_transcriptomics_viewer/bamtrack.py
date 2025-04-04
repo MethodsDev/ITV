@@ -532,6 +532,40 @@ class VirtualBAM():
                 i += 1
 
 
+class CombinedVirtualBAM():
+    def __init__(self, bams, sorted=False):
+        self.bams = bams
+        #self.opener_fns = {}
+        #bam_references = {}
+        for bam in self.bams:
+            with pysam.AlignmentFile(bam) as bam_in:
+                self.references = bam_in.references
+                break
+        #    self.opener_fns[bam] = get_bam_opener(bam)
+        #    bam_references[bam] = bam.references
+
+        # assert bam_references are equal
+        # self.bam_references = 
+
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return
+
+    def fetch(self, chrom=None, start=None, end=None):
+        for bam in self.bams:
+            # with self.opener_fns[bam](bam) as bam_in:
+            with pysam.AlignmentFile(bam) as bam_in:  # dropping flexibility of opener because this is intended for real BAMs. If using VirtualBAM, could merge them differently
+                for read in bam_in.fetch(chrom, start, end):
+                    yield read
+
+
+
+
+
+
 class PairedEndBAMTrack(SingleEndBAMTrack):
     """
     Displays paired-end reads together (otherwise, same as :py:class:`integrative_transcriptomics_viewer.SingleEndBAMTrack`).
