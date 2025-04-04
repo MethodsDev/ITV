@@ -6,6 +6,8 @@ import pandas as pd
 
 import os
 from dataclasses import dataclass
+from functools import reduce
+import itertools
 
 from intervaltree import IntervalTree
 
@@ -351,6 +353,22 @@ class PileupColumn:
         self.n = len(self.pileups)
 
 
+@dataclass
+class MultiPileupColumn:
+    # pos: int
+    # pileups: list[list[PileupRead]]
+    pileups: list[pysam.PileupColumn]
+
+    def __post_init__(self):
+        self.pos = self.pileups[0].pos
+        # self.n = reduce(lambda count, l: count + len(l), self.pileups, initial=0) 
+        self.n = reduce(lambda count, pileupcol: count + pileupcol.n, self.pileups, 0)
+        # _.pileups for _ in self.pileups
+        # self.pileups = itertools.chain(*self.pileups)
+        self.pileups = itertools.chain(*[_.pileups for _ in self.pileups])
+
+
+
 class VirtualBAM():
     def __init__(self, reads, references):
         self.reads = reads
@@ -561,8 +579,22 @@ class CombinedVirtualBAM():
                 for read in bam_in.fetch(chrom, start, end):
                     yield read
 
+    # truncate is always True for the implementation, but have the argument existing for compatibility
+    def pileup(self, chrom, start, end, truncate=True, min_base_quality=13, step_size=100):
+        bam_fhs = []
+        for bam in self.bams:
+            bam_fhs.append(pysam.AlignmentFile(bam))
 
+        #current_pileups = []
 
+        pileups_iterators = []
+        for bam_fh in bam_fhs:
+            pileups_iterators.append(bam_fh.pileup(chrom, start, end, truncate=True))
+
+        yield from [MultiPileupColumn(_) for _ in zip(*pileups_iterators)]
+
+        for bam_fh in bam_fhs:
+            bam_fh.close()
 
 
 
