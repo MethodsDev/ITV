@@ -191,10 +191,10 @@ class Configuration:
             Path of the gtf file to index.
         """
 
-        gene_id_regex = re.compile(r'gene_id "([a-zA-Z0-9\.\-_]+)";')
-        gene_name_regex = re.compile(r'gene_name "([a-zA-Z0-9\.\-_]+)";')
-        transcript_id_regex = re.compile(r'transcript_id "([a-zA-Z0-9\._\^\-]+=?)";')
-        exon_id_regex = re.compile(r'exon_id "([a-zA-Z0-9\.\-_]+)";')
+        gene_id_regex = re.compile(r'gene_id "([a-zA-Z0-9\._\^\-\+:]+)";')
+        gene_name_regex = re.compile(r'gene_name "([a-zA-Z0-9\._\^\-\+:]+)";')
+        transcript_id_regex = re.compile(r'transcript_id "([a-zA-Z0-9\._\^\-\+:]+=?)";')
+        exon_id_regex = re.compile(r'exon_id "([a-zA-Z0-9\._\^\-\+:]+)";')
         # transcript_name_regex = re.compile('transcript_name "([a-zA-Z0-9\.]+)";')
         # protein_id_regex = re.compile('protein_id "([a-zA-Z0-9\.]+)";')
 
