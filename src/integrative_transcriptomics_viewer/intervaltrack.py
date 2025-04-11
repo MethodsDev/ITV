@@ -51,11 +51,16 @@ class IntervalTrack(Track):
         self.vertical_layout = False
         self.max_depth = None
         self.max_reads = None
+        self.strand_specific = False
         self.color_fn = color_by_strand
 
     def layout_interval(self, interval):
         row = None
         interval_start = self.scale.topixels(interval.start)
+
+        if self.strand_specific and interval.strand != self.scale.strand:
+            return
+
         if self.vertical_layout:
             row = len(self.rows)
             if not self.max_depth or (self.max_depth and row <= self.max_depth):
@@ -82,7 +87,7 @@ class IntervalTrack(Track):
 
         assert not interval.id in self.intervals_to_rows
         self.intervals_to_rows[interval.id] = row
-        
+
 
     def layout(self, scale):
         super().layout(scale)

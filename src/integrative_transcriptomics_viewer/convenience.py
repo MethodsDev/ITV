@@ -305,6 +305,7 @@ class Configuration:
     def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False, use_names=True):
         bed_track.color_fn = self.bed_color_fn
         bed_track.vertical_layout = vertical_layout
+        bed_track.strand_specific = strand_specific
         view.add_track(bed_track)
 
 
@@ -452,7 +453,7 @@ class Configuration:
                 gene_view.add_track(itv.track.TrackLabel(add_track_label))
 
         if with_bed:
-            self.add_bed_tracks_to_view(gene_view, use_names = with_bed_label)
+            self.add_bed_tracks_to_view(gene_view,  strand_specific = strand_specific_bed, use_names = with_bed_label)
 
         if with_axis:
             gene_view.add_track(itv.Axis())
