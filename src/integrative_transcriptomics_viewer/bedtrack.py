@@ -205,8 +205,7 @@ class BEDTrack(IntervalTrack):
             # could probably improve on this
             yield from super().draw_interval(renderer, interval)
             return
-                    
-        # print(1)
+
         row = self.intervals_to_rows[interval.id]
         top = row*(self.row_height+self.margin_y)
         top_thin = top + self.row_height/2 - self.thin_width/2
