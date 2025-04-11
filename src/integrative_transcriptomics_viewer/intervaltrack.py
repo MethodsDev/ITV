@@ -1,4 +1,6 @@
 from integrative_transcriptomics_viewer.track import Track
+import random
+
 
 class Interval:
     def __init__(self, id_, chrom, start, end, strand="+", label=None):
@@ -47,22 +49,32 @@ class IntervalTrack(Track):
         self.intervals = intervals
 
         self.vertical_layout = False
+        self.max_depth = None
+        self.max_reads = None
         self.color_fn = color_by_strand
 
     def layout_interval(self, interval):
-        row = 0
+        row = None
         interval_start = self.scale.topixels(interval.start)
         if self.vertical_layout:
-            self.rows.append(None)
-            row = len(self.rows) - 1
-        else:
-            for row, row_end in enumerate(self.rows):
-                if interval_start > row_end:
-                    break
-            else:
+            row = len(self.rows)
+            if not self.max_depth or (self.max_depth and row <= self.max_depth):
                 self.rows.append(None)
-                row = len(self.rows) - 1
-        
+            else:
+                return
+        else:
+            if not self.max_reads or len(self.intervals_to_rows) < self.max_reads:  # if haven't reached max number of reads to display, we can try to fit it on an existing row 
+                for rowi, row_end in enumerate(self.rows):
+                    if interval_start > row_end:  # could keep track of row_start as well, in case of random sorted
+                        row = rowi
+                        break
+            if row is None:
+                if not self.max_depth or (self.max_depth and len(self.rows) < self.max_depth):
+                    row = len(self.rows)
+                    self.rows.append(None)
+                else:
+                    return
+
             new_end = self.scale.topixels(interval.end) + self.margin_x
             if interval.label is not None:
                 new_end += len(interval.label) * self.row_height * 0.75
@@ -78,15 +90,32 @@ class IntervalTrack(Track):
         self.rows = []
         self.intervals_to_rows = {}
 
-        for interval in self.intervals:
-            self.layout_interval(interval)
+        if self.max_depth:
+            intervals = [_ for _ in self.intervals]
+            random.shuffle(intervals)
+            for interval in intervals:
+                self.layout_interval(interval) #, max_rows = self.max_depth)
+            if len(self.rows) > self.max_depth:
+                self.rows = self.rows[:self.max_depth]
+        elif self.max_reads and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
+            # implement resevoir sample 
+            #intervals = self.intervals[:self.max_reads]
+            #for inter in self.intervals[self.max_reads:]:
+            pass
+        else:
+            for interval in self.intervals:
+                self.layout_interval(interval)
             
         self.height = max(1, len(self.rows)) * (self.row_height + self.margin_y)
     
+
     def draw_interval(self, renderer, interval, extra_args={}):
         start = self.scale.topixels(interval.start)
         end = self.scale.topixels(interval.end)
         
+        # interval might not be mapped due to sampling  
+        if interval.id not in self.intervals_to_rows:
+            return
         row = self.intervals_to_rows[interval.id]
         top = row*(self.row_height+self.margin_y)
         

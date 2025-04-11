@@ -147,8 +147,8 @@ class SingleEndBAMTrack(IntervalTrack):
             with self.opener_fn(self.bam_path) as bam:
                 self.mismatch_counts.tally_reads(bam)
 
-    def layout_interval(self, interval):
-        super().layout_interval(interval)
+    #def layout_interval(self, interval):
+    #    super().layout_interval(interval)
 
     def draw_interval(self, renderer, interval):
         """
@@ -299,6 +299,9 @@ class SingleEndBAMTrack(IntervalTrack):
         
         # min_width = 2
 
+        # interval might not be mapped due to sampling 
+        if interval.id not in self.intervals_to_rows:
+            return
         row = self.intervals_to_rows[interval.id]
         yoffset = row*(self.row_height+self.margin_y)
 
