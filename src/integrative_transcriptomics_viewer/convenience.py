@@ -302,7 +302,13 @@ class Configuration:
         return all_known_annotations
 
 
-    def add_bed_tracks_to_view(self, view, vertical_layout=True, use_names=True):
+    def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False, use_names=True):
+        bed_track.color_fn = self.bed_color_fn
+        bed_track.vertical_layout = vertical_layout
+        view.add_track(bed_track)
+
+
+    def add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names=True):
         """
         Transparently adds BED tracks as needed to a view for all BEDs in this configuration,
         regardless of whether they reference a file or are in-memory, and of self.bed_annotation format.
@@ -321,9 +327,7 @@ class Configuration:
             if type(self.bed_annotation) is list:
                 for bed_path in self.bed_annotation:
                     bed_track = make_bed_track(bed_path)
-                    bed_track.color_fn = self.bed_color_fn
-                    bed_track.vertical_layout = vertical_layout
-                    view.add_track(bed_track)
+                    self.add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific, use_names)
             elif type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
                     if use_names:
@@ -335,14 +339,10 @@ class Configuration:
                     # else:
                     #     view.add_track(itv.track.TrackLabel(""))
                     virtual_bed = make_bed_track(bed_path, name="")
-                    virtual_bed.color_fn = self.bed_color_fn
-                    virtual_bed.vertical_layout = vertical_layout
-                    view.add_track(virtual_bed)
+                    self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
             else:
                 virtual_bed = make_bed_track(self.bed_annotation)
-                virtual_bed.color_fn = self.bed_color_fn
-                virtual_bed.vertical_layout = vertical_layout
-                view.add_track(virtual_bed)
+                self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
 
 
     def build_view_row(self, start, end, chrom, strand, bams_dict,
@@ -361,7 +361,9 @@ class Configuration:
                        coverage_tag_fn = None,
                        coverage_by_strand = False,
                        priming_orientation = "3p",
+                       strand_specific_bed = False,
                        vertical_layout_reads = False,
+                       max_read_depth = None,
                        include_secondary = False,
                        quick_consensus = False,
                        row = None, 
@@ -496,6 +498,7 @@ class Configuration:
                 if include_secondary:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
+                bam_track.max_depth = max_read_depth
                 bam_track.quick_consensus = quick_consensus
                 bam_track.vertical_layout = vertical_layout_reads
                 gene_view.add_track(bam_track)

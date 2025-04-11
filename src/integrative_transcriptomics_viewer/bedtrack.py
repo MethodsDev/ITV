@@ -197,7 +197,9 @@ class BEDTrack(IntervalTrack):
 
 
     def draw_interval(self, renderer, interval):
-        # print(interval)
+        if interval.id not in self.intervals_to_rows:
+            return
+
         interval_pixel_width = self.scale.relpixels(interval.tx.end-interval.tx.start)
         if interval_pixel_width < 12:
             # could probably improve on this
@@ -216,7 +218,6 @@ class BEDTrack(IntervalTrack):
             temp_label = interval.id
         
         tx = interval.tx
-        # print(2)
 
         # Draw the thin lines between "exons", along with arrows pointing in transcript direction
         for i in range(len(tx.exons)-1):
