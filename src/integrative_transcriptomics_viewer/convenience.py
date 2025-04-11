@@ -363,7 +363,7 @@ class Configuration:
                        priming_orientation = "3p",
                        strand_specific_bed = False,
                        vertical_layout_reads = False,
-                       max_read_depth = None,
+                       max_read_depth = 100,
                        include_secondary = False,
                        quick_consensus = False,
                        row = None, 
