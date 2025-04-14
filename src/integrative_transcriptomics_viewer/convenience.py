@@ -365,6 +365,7 @@ class Configuration:
                        strand_specific_bed = False,
                        vertical_layout_reads = False,
                        max_read_depth = 100,
+                       max_read_count = None,
                        include_secondary = False,
                        quick_consensus = False,
                        row = None, 
@@ -500,6 +501,7 @@ class Configuration:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
                 bam_track.max_depth = max_read_depth
+                bam_track.max_reads = max_read_count
                 bam_track.quick_consensus = quick_consensus
                 bam_track.vertical_layout = vertical_layout_reads
                 gene_view.add_track(bam_track)
