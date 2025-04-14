@@ -6,6 +6,7 @@ import pandas as pd
 
 import os
 from dataclasses import dataclass
+import math
 import random
 
 from intervaltree import IntervalTree
@@ -57,26 +58,36 @@ class BAMTrack(IntervalTrack):
             interval_start = self.scale.topixels(interval.start)
             interval_end = self.scale.topixels(interval.end)
             # if haven't reached max number of reads to display, we can try to fit it on an existing row, max_depth doesn't need to be checked here because the populated rows already are within that limit
-            if not self.max_reads or len(self.intervals_to_rows) < self.max_reads:  
-                for rowi, (row_start, row_end) in enumerate(self.rows):
-                    if interval_start > row_end:  # could keep track of row_start as well, in case of random sorted
-                        row = rowi
-                        break
-                    elif interval_end < row_start:
-                        row = rowi
-                        break
-            if row is None:
-                if (not self.max_reads and not self.max_depth) or (self.max_depth and len(self.rows) < self.max_depth) or (self.max_reads and len(self.intervals_to_rows) < self.max_reads):
-                    row = len(self.rows)
-                    self.rows.append(None)
-                else:
-                    return
+            # if not self.max_reads or len(self.intervals_to_rows) < self.max_reads:  
+            for rowi, (row_start, row_end) in enumerate(self.rows):
+                if interval_start > row_end:  # could keep track of row_start as well, in case of random sorted
+                    row = rowi
+                    break
+                elif interval_end < row_start:
+                    row = rowi
+                    break
 
             cigartuples = interval.read.cigartuples
-            new_start = self.scale.topixels(interval.start + (cigartuples[0][1] if cigartuples[0][0] == "4" else 0)) - self.margin_x
-            new_end = self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x
-            if interval.label is not None:
-                new_end += len(interval.label) * self.row_height * 0.75
+            new_start = None
+            new_end = None
+            if row is None:
+                # if (not self.max_reads and not self.max_depth) or (self.max_depth and len(self.rows) < self.max_depth) or (self.max_reads and len(self.intervals_to_rows) < self.max_reads):
+                if (not self.max_depth) or (self.max_depth and len(self.rows) < self.max_depth):
+                    row = len(self.rows)
+                    self.rows.append(None)
+                    new_start = self.scale.topixels(interval.start + (cigartuples[0][1] if cigartuples[0][0] == "4" else 0)) - self.margin_x
+                    new_end = self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x
+                    if interval.label is not None:
+                        new_end += len(interval.label) * self.row_height * 0.75
+                else:
+                    return
+            else:  # if side by side with already laid out read(s) 
+                new_start = min(self.rows[row][0], self.scale.topixels(interval.start + (cigartuples[0][1] if cigartuples[0][0] == "4" else 0)) - self.margin_x)
+                if interval.label:
+                    new_end = max(self.rows[row][1], self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x + (len(interval.label) * self.row_height * 0.75))
+                else:
+                    new_end = max(self.rows[row][1], self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x)
+
             self.rows[row] = (new_start, new_end)
 
         assert not interval.id in self.intervals_to_rows
@@ -97,11 +108,35 @@ class BAMTrack(IntervalTrack):
                 self.layout_interval(interval) #, max_rows = self.max_depth)
             if len(self.rows) > self.max_depth:
                 self.rows = self.rows[:self.max_depth]
-        elif self.max_reads and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
-            # implement resevoir sample 
-            #intervals = self.intervals[:self.max_reads]
-            #for inter in self.intervals[self.max_reads:]:
-            pass
+        elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
+            intervals = [_ for _ in self.intervals]
+            #print(f'len(intervals) == {len(intervals)}')
+            if len(intervals) > self.max_reads:
+                # resevoir sample 
+                # initial fill of the reservoir
+                self.intervals = intervals[:self.max_reads]
+
+                i = self.max_reads
+                n = len(intervals) - 1
+                W = math.exp(math.log(random.random()) / self.max_reads)
+                while i < n:
+                    # jump to the next element that will replace another in the reservoir
+                    i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
+
+                    # if we didn't reach the end of the list of stuff to sample yet
+                    if i < n:
+                        self.intervals[random.randint(0, self.max_reads - 1)] = intervals[i]  # random index between 1 and k, inclusive
+                        W = W * math.exp(math.log(random.random()) / self.max_reads)
+            else:
+                self.intervals = intervals
+
+            #print(f'len(intervals) == {len(intervals)}')
+            #print(f'len(self.intervals) == {len(self.intervals)}')
+
+            for interval in self.intervals:
+                #print(f'{interval} : {interval.read}')
+                self.layout_interval(interval)      
+
         else:
             for interval in self.intervals:
                 self.layout_interval(interval)
