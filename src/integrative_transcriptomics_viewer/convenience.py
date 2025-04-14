@@ -1179,6 +1179,8 @@ class Configuration:
                                            add_reads_label = "auto",
                                            add_coverage_label = "auto",
                                            with_coverage = True,
+                                           max_read_depth = 100,
+                                           max_read_count = None,
                                            include_secondary = False,
                                            row = None, 
                                            normalize_interval_width = False,
@@ -1242,13 +1244,19 @@ class Configuration:
                 bam_refs = bam.references
                 virtual_bam = itv.bamtrack.VirtualBAM([], bam_refs)
                 virtual_bam.dumb_fetch = True
-                # bam_track.quick_consensus = False
+                # bam_track.quick_consensus = False;
                 
                 for read in bam.fetch(intervals_list[0].chrom, left_bound, right_bound):
                     if not include_secondary and read.is_secondary:
                         continue
                     # add check that it does overlap with intervals_list at least somewhere
                     virtual_bam.reads.append(read)
+
+                # in plot_exons, always using vertical_layout=True, so both are equivalent
+                if max_read_count:
+                    virtual_bam.sample(max_read_count)
+                elif max_read_depth:
+                    virtual_bam.sample(max_read_depth)
 
                 virtual_bams_dict[key] = virtual_bam
 
@@ -1357,6 +1365,8 @@ class Configuration:
                                                  strand = strand,
                                                  bams_dict = virtual_bams_dict, 
                                                  vertical_layout_reads = True,
+                                                 max_read_depth = None,
+                                                 max_read_count = None,
                                                  padding_perc = padding_perc, 
                                                  add_track_label = add_track_label,
                                                  add_reads_label = add_reads_label,
