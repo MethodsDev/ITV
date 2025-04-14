@@ -35,6 +35,32 @@ def color_by_strand(interval):
     return color
 
 
+def reservoir_sampling(iterable_to_sample, sample_size):
+    # could add a check of whether it's a generator or not? to only run this first line if it is
+    sampling_pool = [_ for _ in iterable_to_sample]
+
+    if len(sampling_pool) > sample_size:
+        # resevoir sample 
+        # initial fill of the reservoir
+        reservoir = sampling_pool[:sample_size]
+
+        i = sample_size
+        n = len(sampling_pool) - 1
+        W = math.exp(math.log(random.random()) / sample_size)
+        while i < n:
+            # jump to the next element that will replace another in the reservoir
+            i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
+
+            # if we didn't reach the end of the list of stuff to sample yet
+            if i < n:
+                reservoir[random.randint(0, sample_size - 1)] = sampling_pool[i]  # random index between 1 and k, inclusive
+                W = W * math.exp(math.log(random.random()) / sample_size)
+        return reservoir
+    else:
+        return sampling_pool
+
+
+
 class BAMTrack(IntervalTrack):
     def __init__(self, intervals, name=None):
         super().__init__(intervals, name=name)
@@ -109,32 +135,28 @@ class BAMTrack(IntervalTrack):
             if len(self.rows) > self.max_depth:
                 self.rows = self.rows[:self.max_depth]
         elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
-            intervals = [_ for _ in self.intervals]
-            #print(f'len(intervals) == {len(intervals)}')
-            if len(intervals) > self.max_reads:
-                # resevoir sample 
-                # initial fill of the reservoir
-                self.intervals = intervals[:self.max_reads]
+            self.intervals = reservoir_sampling(self.intervals, self.max_reads)
+            # intervals = [_ for _ in self.intervals]
+            # if len(intervals) > self.max_reads:
+            #     # resevoir sample 
+            #     # initial fill of the reservoir
+            #     self.intervals = intervals[:self.max_reads]
 
-                i = self.max_reads
-                n = len(intervals) - 1
-                W = math.exp(math.log(random.random()) / self.max_reads)
-                while i < n:
-                    # jump to the next element that will replace another in the reservoir
-                    i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
+            #     i = self.max_reads
+            #     n = len(intervals) - 1
+            #     W = math.exp(math.log(random.random()) / self.max_reads)
+            #     while i < n:
+            #         # jump to the next element that will replace another in the reservoir
+            #         i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
 
-                    # if we didn't reach the end of the list of stuff to sample yet
-                    if i < n:
-                        self.intervals[random.randint(0, self.max_reads - 1)] = intervals[i]  # random index between 1 and k, inclusive
-                        W = W * math.exp(math.log(random.random()) / self.max_reads)
-            else:
-                self.intervals = intervals
-
-            #print(f'len(intervals) == {len(intervals)}')
-            #print(f'len(self.intervals) == {len(self.intervals)}')
+            #         # if we didn't reach the end of the list of stuff to sample yet
+            #         if i < n:
+            #             self.intervals[random.randint(0, self.max_reads - 1)] = intervals[i]  # random index between 1 and k, inclusive
+            #             W = W * math.exp(math.log(random.random()) / self.max_reads)
+            # else:
+            #     self.intervals = intervals
 
             for interval in self.intervals:
-                #print(f'{interval} : {interval.read}')
                 self.layout_interval(interval)      
 
         else:
@@ -644,6 +666,9 @@ class VirtualBAM():
                 if pileups[i]:
                     yield PileupColumn(ref_pos, pileups[i])
                 i += 1
+
+    def sample(self, max_read_count):
+        self.reads = reservoir_sampling(self.reads, max_read_count)
 
 
 class PairedEndBAMTrack(SingleEndBAMTrack):
