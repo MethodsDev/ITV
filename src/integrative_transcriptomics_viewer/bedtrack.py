@@ -20,7 +20,7 @@ DEFAULT_BED_FIELD_DEFS = {
 
 
 class Transcript:
-    def __init__(self, chrom, start, end, strand="+", name=None, coding_start=None,
+    def __init__(self, chrom, start, end, strand=True, name=None, coding_start=None,
                  coding_end=None, exons=None, color=None, **kwargs):
         self.chrom = chrom
         self.start = int(start)
