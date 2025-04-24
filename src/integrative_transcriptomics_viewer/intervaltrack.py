@@ -38,8 +38,6 @@ def color_by_strand(interval):
     if interval.strand:
         return "#E89E9D"
     return "#8C8FCE"
-    return color
-    
 
 
 class IntervalTrack(Track):
