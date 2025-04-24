@@ -6,7 +6,6 @@ import pandas as pd
 
 import os
 from dataclasses import dataclass
-import math
 import random
 
 from intervaltree import IntervalTree
@@ -14,7 +13,7 @@ from intervaltree import IntervalTree
 from integrative_transcriptomics_viewer.track import Track
 from integrative_transcriptomics_viewer.intervaltrack import Interval, IntervalTrack
 from integrative_transcriptomics_viewer import MismatchCounts
-from integrative_transcriptomics_viewer.utilities import match_chrom_format
+from integrative_transcriptomics_viewer.utilities import match_chrom_format, reservoir_sampling
 from integrative_transcriptomics_viewer.graphtrack import GraphTrack, BINNED_COLORS, SECONDARY_COLORS
 
 
@@ -44,31 +43,6 @@ def color_by_strand(interval):
     if interval.read.is_secondary:
         return"#8CB0CE"
     return "#8C8FCE"
-
-
-def reservoir_sampling(iterable_to_sample, sample_size):
-    # could add a check of whether it's a generator or not? to only run this first line if it is
-    sampling_pool = [_ for _ in iterable_to_sample]
-
-    if len(sampling_pool) > sample_size:
-        # initial fill of the reservoir
-        reservoir = sampling_pool[:sample_size]
-
-        i = sample_size
-        n = len(sampling_pool) - 1
-        W = math.exp(math.log(random.random()) / sample_size)
-        while i < n:
-            # jump to the next element that will replace another in the reservoir
-            i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
-
-            # if we didn't reach the end of the list of stuff to sample yet
-            if i < n:
-                reservoir[random.randint(0, sample_size - 1)] = sampling_pool[i]  # random index between 1 and k, inclusive
-                W = W * math.exp(math.log(random.random()) / sample_size)
-        return reservoir
-    else:
-        return sampling_pool
-
 
 
 class BAMTrack(IntervalTrack):
