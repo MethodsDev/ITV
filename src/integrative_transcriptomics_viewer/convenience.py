@@ -127,7 +127,12 @@ Interval.chrom = interval_chrom
 
 @property
 def interval_strand(self):
-    return self.data[-1:]
+    # return self.data[-1:]
+    if self.data[-1:] == "+":
+        return True
+    if self.data[-1:] == "-":
+        return False
+    return True
 
 Interval.strand = interval_strand
 

@@ -10,8 +10,8 @@ class Interval:
         self.id = id_
         self.label = label
         
-        if isinstance(strand, bool):
-            strand = {True:"+", False:"-"}[strand]
+        #if isinstance(strand, bool):
+        #    strand = {True:"+", False:"-"}[strand]
         self.strand = strand
 
     def overlaps(self, other, ignore_strand=True):
@@ -26,11 +26,18 @@ class Interval:
     def __repr__(self):
         return "{}:{:,}-{:,}{}".format(self.chrom, self.start, self.end, self.strand)
         
+# def color_by_strand(interval):
+#     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
+#     color = "#E89E9D"
+#     if interval.strand == "-":
+#         color = "#8C8FCE"
+#     return color
+
 def color_by_strand(interval):
     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
-    color = "#E89E9D"
-    if interval.strand == "-":
-        color = "#8C8FCE"
+    if interval.strand:
+        return "#E89E9D"
+    return "#8C8FCE"
     return color
     
 

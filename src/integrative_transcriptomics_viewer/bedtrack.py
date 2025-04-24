@@ -65,8 +65,18 @@ def tx_from_bedfields(bedfields, field_defs=None):
     assert values["start"] is not None
     assert values["end"] is not None
 
-    if values["strand"] is None:
-        values["strand"] = "+"
+    # if values["strand"] is None:
+    #     values["strand"] = True
+    # else:
+    #     if values["strand"] == "+":
+    #         values["strand"] = True
+    #     else:
+    #         values["strand"] = False
+
+    if values["strand"] == "-":
+        values["strand"] = False
+    else:  # "+" or None
+        values["strand"] = True
     
     values["exons"] = None
     if values["exon_starts"]:
