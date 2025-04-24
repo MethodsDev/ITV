@@ -135,26 +135,8 @@ class BAMTrack(IntervalTrack):
             if len(self.rows) > self.max_depth:
                 self.rows = self.rows[:self.max_depth]
         elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
+
             self.intervals = reservoir_sampling(self.intervals, self.max_reads)
-            # intervals = [_ for _ in self.intervals]
-            # if len(intervals) > self.max_reads:
-            #     # resevoir sample 
-            #     # initial fill of the reservoir
-            #     self.intervals = intervals[:self.max_reads]
-
-            #     i = self.max_reads
-            #     n = len(intervals) - 1
-            #     W = math.exp(math.log(random.random()) / self.max_reads)
-            #     while i < n:
-            #         # jump to the next element that will replace another in the reservoir
-            #         i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
-
-            #         # if we didn't reach the end of the list of stuff to sample yet
-            #         if i < n:
-            #             self.intervals[random.randint(0, self.max_reads - 1)] = intervals[i]  # random index between 1 and k, inclusive
-            #             W = W * math.exp(math.log(random.random()) / self.max_reads)
-            # else:
-            #     self.intervals = intervals
 
             for interval in self.intervals:
                 self.layout_interval(interval)      
