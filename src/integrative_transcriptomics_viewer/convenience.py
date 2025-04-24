@@ -367,6 +367,7 @@ class Configuration:
                        coverage_tag_fn = None,
                        coverage_by_strand = False,
                        priming_orientation = "3p",
+                       strand_specific_bam = False,
                        strand_specific_bed = False,
                        vertical_layout_reads = False,
                        max_read_depth = 100,
@@ -476,6 +477,7 @@ class Configuration:
                     if add_coverage_label == "auto":
                         coverage_label = key
                 coverage_track = itv.BAMCoverageTrack(value, name=coverage_label, **opener_kwargs)
+                coverage_track.strand_specific = strand_specific_bam
                 coverage_track.bin_size = coverage_bin_size
                 coverage_track.priming_orientation = priming_orientation
                 coverage_track.height = coverage_height
@@ -509,6 +511,7 @@ class Configuration:
                 bam_track.max_reads = max_read_count
                 bam_track.quick_consensus = quick_consensus
                 bam_track.vertical_layout = vertical_layout_reads
+                bam_track.strand_specific = strand_specific_bam
                 gene_view.add_track(bam_track)
 
         if view_width:
