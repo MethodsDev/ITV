@@ -76,6 +76,7 @@ class BAMTrack(IntervalTrack):
         super().__init__(intervals, name=name)
         self.max_depth = None
         self.max_reads = None
+        self.strand_specific = False
 
 
     def layout_interval(self, interval):
@@ -215,7 +216,8 @@ class SingleEndBAMTrack(BAMTrack):
         
         self.draw_read_labels = False
 
-        self.include_read_fn = allreads
+        # self.include_read_fn = allreads
+        self.include_read_fn = None
         self.color_fn = color_by_strand
         
     def fetch(self):
@@ -865,7 +867,8 @@ class BAMCoverageTrack(GraphTrack):
         with self.opener_fn(bam_path) as bam:
             self.bam_references = bam.references
         self.include_secondary = False
-        self.stranded_coverage = False
+        self.strand_specific = False  # limit coverage to a strand alone
+        self.stranded_coverage = False  # splits coverage according to strand
         self.min_dist = 0
         self.bin_size = 0
         self.tag = None
@@ -895,7 +898,8 @@ class BAMCoverageTrack(GraphTrack):
 
         with self.opener_fn(self.bam_path) as bam:
             for read in bam.fetch(chrom, scale.start, scale.end):
-                if read.is_secondary and not self.include_secondary:
+                if (read.is_secondary and not self.include_secondary) or \
+                (self.strand_specific and read.is_reverse == scale.strand):  # scale.strand is True for + and False for -, so opposite of read.is_reverse()
                     continue
                 yield read
 
