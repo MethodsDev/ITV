@@ -21,18 +21,29 @@ from integrative_transcriptomics_viewer.graphtrack import GraphTrack, BINNED_COL
 def allreads(read):
     return True
 
+# def color_by_strand(interval):
+#     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
+# 
+#     if interval.strand == "-":
+#         color = "#8C8FCE"
+#         if interval.read.is_secondary:
+#             color = "#8CB0CE"
+#     else:
+#         color = "#E89E9D"
+#         if interval.read.is_secondary:
+#             color = "#E8C49D"
+#     return color
+
+
 def color_by_strand(interval):
     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
-
-    if interval.strand == "-":
-        color = "#8C8FCE"
+    if interval.strand:
         if interval.read.is_secondary:
-            color = "#8CB0CE"
-    else:
-        color = "#E89E9D"
-        if interval.read.is_secondary:
-            color = "#E8C49D"
-    return color
+            return "#E8C49D"
+        return "#E89E9D"
+    if interval.read.is_secondary:
+        return"#8CB0CE"
+    return "#8C8FCE"
 
 
 def reservoir_sampling(iterable_to_sample, sample_size):
@@ -40,7 +51,6 @@ def reservoir_sampling(iterable_to_sample, sample_size):
     sampling_pool = [_ for _ in iterable_to_sample]
 
     if len(sampling_pool) > sample_size:
-        # resevoir sample 
         # initial fill of the reservoir
         reservoir = sampling_pool[:sample_size]
 
