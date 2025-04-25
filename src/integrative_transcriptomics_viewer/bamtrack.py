@@ -54,6 +54,7 @@ class BAMTrack(IntervalTrack):
 
 
     def layout_interval(self, interval):
+        # check here becomes redundant, as long as __iter__ of children classes check for it
         if self.strand_specific and interval.strand != self.scale.strand:
             return
 
@@ -193,7 +194,7 @@ class SingleEndBAMTrack(BAMTrack):
         # self.include_read_fn = allreads
         self.include_read_fn = None
         self.color_fn = color_by_strand
-        
+
     def fetch(self):
         """
         Iterator over reads from the bam file
@@ -209,13 +210,16 @@ class SingleEndBAMTrack(BAMTrack):
             for read in bam.fetch(chrom, start, end):
                 if not self.include_read_fn or self.include_read_fn(read):
                     yield read
-        
+
     def __iter__(self):
         c = 0
         for i, read in enumerate(self.fetch()):
             c += 1
             if read.is_unmapped: continue
             if read.is_secondary and not self.include_secondary: continue
+            # is_reverse returns a flag that is the inverse of the strand bool so them being equal means they are opposed
+            # we can use self.scale because iterator is only called after layout(self, scale) sets self.scale
+            if self.strand_specific and read.is_reverse == self.scale.strand: continue
             id_ = read.query_name + str(i)
             interval = Interval(id_, self.scale.chrom, read.reference_start, read.reference_end, 
                                 not read.is_reverse)
@@ -231,7 +235,7 @@ class SingleEndBAMTrack(BAMTrack):
         """
         # return match_chrom_format(chrom, self.bam.references)
         return match_chrom_format(chrom, self.bam_references)
-        
+
     def layout(self, scale):
         super().layout(scale)
         self.reset_mismatch_counts()
