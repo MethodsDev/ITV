@@ -20,7 +20,7 @@ DEFAULT_BED_FIELD_DEFS = {
 
 
 class Transcript:
-    def __init__(self, chrom, start, end, strand="+", name=None, coding_start=None,
+    def __init__(self, chrom, start, end, strand=True, name=None, coding_start=None,
                  coding_end=None, exons=None, color=None, **kwargs):
         self.chrom = chrom
         self.start = int(start)
@@ -65,8 +65,18 @@ def tx_from_bedfields(bedfields, field_defs=None):
     assert values["start"] is not None
     assert values["end"] is not None
 
-    if values["strand"] is None:
-        values["strand"] = "+"
+    # if values["strand"] is None:
+    #     values["strand"] = True
+    # else:
+    #     if values["strand"] == "+":
+    #         values["strand"] = True
+    #     else:
+    #         values["strand"] = False
+
+    if values["strand"] == "-":
+        values["strand"] = False
+    else:  # "+" or None
+        values["strand"] = True
     
     values["exons"] = None
     if values["exon_starts"]:
@@ -197,14 +207,15 @@ class BEDTrack(IntervalTrack):
 
 
     def draw_interval(self, renderer, interval):
-        # print(interval)
+        if interval.id not in self.intervals_to_rows:
+            return
+
         interval_pixel_width = self.scale.relpixels(interval.tx.end-interval.tx.start)
         if interval_pixel_width < 12:
             # could probably improve on this
             yield from super().draw_interval(renderer, interval)
             return
-                    
-        # print(1)
+
         row = self.intervals_to_rows[interval.id]
         top = row*(self.row_height+self.margin_y)
         top_thin = top + self.row_height/2 - self.thin_width/2
@@ -216,7 +227,6 @@ class BEDTrack(IntervalTrack):
             temp_label = interval.id
         
         tx = interval.tx
-        # print(2)
 
         # Draw the thin lines between "exons", along with arrows pointing in transcript direction
         for i in range(len(tx.exons)-1):

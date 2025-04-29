@@ -127,7 +127,12 @@ Interval.chrom = interval_chrom
 
 @property
 def interval_strand(self):
-    return self.data[-1:]
+    # return self.data[-1:]
+    if self.data[-1:] == "+":
+        return True
+    if self.data[-1:] == "-":
+        return False
+    return True
 
 Interval.strand = interval_strand
 
@@ -302,7 +307,14 @@ class Configuration:
         return all_known_annotations
 
 
-    def add_bed_tracks_to_view(self, view, vertical_layout=True, use_names=True):
+    def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False, use_names=True):
+        bed_track.color_fn = self.bed_color_fn
+        bed_track.vertical_layout = vertical_layout
+        bed_track.strand_specific = strand_specific
+        view.add_track(bed_track)
+
+
+    def add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names=True):
         """
         Transparently adds BED tracks as needed to a view for all BEDs in this configuration,
         regardless of whether they reference a file or are in-memory, and of self.bed_annotation format.
@@ -321,9 +333,7 @@ class Configuration:
             if type(self.bed_annotation) is list:
                 for bed_path in self.bed_annotation:
                     bed_track = make_bed_track(bed_path)
-                    bed_track.color_fn = self.bed_color_fn
-                    bed_track.vertical_layout = vertical_layout
-                    view.add_track(bed_track)
+                    self.add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific, use_names)
             elif type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
                     if use_names:
@@ -335,14 +345,10 @@ class Configuration:
                     # else:
                     #     view.add_track(itv.track.TrackLabel(""))
                     virtual_bed = make_bed_track(bed_path, name="")
-                    virtual_bed.color_fn = self.bed_color_fn
-                    virtual_bed.vertical_layout = vertical_layout
-                    view.add_track(virtual_bed)
+                    self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
             else:
                 virtual_bed = make_bed_track(self.bed_annotation)
-                virtual_bed.color_fn = self.bed_color_fn
-                virtual_bed.vertical_layout = vertical_layout
-                view.add_track(virtual_bed)
+                self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
 
 
     def build_view_row(self, start, end, chrom, strand, bams_dict,
@@ -361,7 +367,11 @@ class Configuration:
                        coverage_tag_fn = None,
                        coverage_by_strand = False,
                        priming_orientation = "3p",
+                       strand_specific_bam = False,
+                       strand_specific_bed = False,
                        vertical_layout_reads = False,
+                       max_read_depth = 100,
+                       max_read_count = None,
                        include_secondary = False,
                        quick_consensus = False,
                        row = None, 
@@ -450,7 +460,7 @@ class Configuration:
                 gene_view.add_track(itv.track.TrackLabel(add_track_label))
 
         if with_bed:
-            self.add_bed_tracks_to_view(gene_view, use_names = with_bed_label)
+            self.add_bed_tracks_to_view(gene_view,  strand_specific = strand_specific_bed, use_names = with_bed_label)
 
         if with_axis:
             gene_view.add_track(itv.Axis())
@@ -467,6 +477,7 @@ class Configuration:
                     if add_coverage_label == "auto":
                         coverage_label = key
                 coverage_track = itv.BAMCoverageTrack(value, name=coverage_label, **opener_kwargs)
+                coverage_track.strand_specific = strand_specific_bam
                 coverage_track.bin_size = coverage_bin_size
                 coverage_track.priming_orientation = priming_orientation
                 coverage_track.height = coverage_height
@@ -496,8 +507,11 @@ class Configuration:
                 if include_secondary:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
+                bam_track.max_depth = max_read_depth
+                bam_track.max_reads = max_read_count
                 bam_track.quick_consensus = quick_consensus
                 bam_track.vertical_layout = vertical_layout_reads
+                bam_track.strand_specific = strand_specific_bam
                 gene_view.add_track(bam_track)
 
         if view_width:
@@ -1173,6 +1187,8 @@ class Configuration:
                                            add_reads_label = "auto",
                                            add_coverage_label = "auto",
                                            with_coverage = True,
+                                           max_read_depth = 100,
+                                           max_read_count = None,
                                            include_secondary = False,
                                            row = None, 
                                            normalize_interval_width = False,
@@ -1236,13 +1252,19 @@ class Configuration:
                 bam_refs = bam.references
                 virtual_bam = itv.bamtrack.VirtualBAM([], bam_refs)
                 virtual_bam.dumb_fetch = True
-                # bam_track.quick_consensus = False
+                # bam_track.quick_consensus = False;
                 
                 for read in bam.fetch(intervals_list[0].chrom, left_bound, right_bound):
                     if not include_secondary and read.is_secondary:
                         continue
                     # add check that it does overlap with intervals_list at least somewhere
                     virtual_bam.reads.append(read)
+
+                # in plot_exons, always using vertical_layout=True, so both are equivalent
+                if max_read_count:
+                    virtual_bam.sample(max_read_count)
+                elif max_read_depth:
+                    virtual_bam.sample(max_read_depth)
 
                 virtual_bams_dict[key] = virtual_bam
 
@@ -1351,6 +1373,8 @@ class Configuration:
                                                  strand = strand,
                                                  bams_dict = virtual_bams_dict, 
                                                  vertical_layout_reads = True,
+                                                 max_read_depth = None,
+                                                 max_read_count = None,
                                                  padding_perc = padding_perc, 
                                                  add_track_label = add_track_label,
                                                  add_reads_label = add_reads_label,

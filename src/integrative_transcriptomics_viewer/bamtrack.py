@@ -6,34 +6,135 @@ import pandas as pd
 
 import os
 from dataclasses import dataclass
+import random
 
 from intervaltree import IntervalTree
 
 from integrative_transcriptomics_viewer.track import Track
 from integrative_transcriptomics_viewer.intervaltrack import Interval, IntervalTrack
 from integrative_transcriptomics_viewer import MismatchCounts
-from integrative_transcriptomics_viewer.utilities import match_chrom_format
+from integrative_transcriptomics_viewer.utilities import match_chrom_format, reservoir_sampling
 from integrative_transcriptomics_viewer.graphtrack import GraphTrack, BINNED_COLORS, SECONDARY_COLORS
 
 
 def allreads(read):
     return True
 
+# def color_by_strand(interval):
+#     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
+# 
+#     if interval.strand == "-":
+#         color = "#8C8FCE"
+#         if interval.read.is_secondary:
+#             color = "#8CB0CE"
+#     else:
+#         color = "#E89E9D"
+#         if interval.read.is_secondary:
+#             color = "#E8C49D"
+#     return color
+
+
 def color_by_strand(interval):
     # brightness = 0.2 + (cur_reads[0].mapq/40.0*0.8)
-
-    if interval.strand == "-":
-        color = "#8C8FCE"
+    if interval.strand:
         if interval.read.is_secondary:
-            color = "#8CB0CE"
-    else:
-        color = "#E89E9D"
-        if interval.read.is_secondary:
-            color = "#E8C49D"
-    return color
+            return "#E8C49D"
+        return "#E89E9D"
+    if interval.read.is_secondary:
+        return"#8CB0CE"
+    return "#8C8FCE"
 
-    
-class SingleEndBAMTrack(IntervalTrack):
+
+class BAMTrack(IntervalTrack):
+    def __init__(self, intervals, name=None):
+        super().__init__(intervals, name=name)
+        self.max_depth = None
+        self.max_reads = None
+        self.strand_specific = False
+
+
+    def layout_interval(self, interval):
+        # check here becomes redundant, as long as __iter__ of children classes check for it
+        if self.strand_specific and interval.strand != self.scale.strand:
+            return
+
+        row = None
+        if self.vertical_layout:
+            row = len(self.rows)
+            if not self.max_depth or (self.max_depth and row <= self.max_depth):
+                self.rows.append(None)
+            else:
+                return
+
+        else:
+            interval_start = self.scale.topixels(interval.start)
+            interval_end = self.scale.topixels(interval.end)
+            # if haven't reached max number of reads to display, we can try to fit it on an existing row, max_depth doesn't need to be checked here because the populated rows already are within that limit
+            # if not self.max_reads or len(self.intervals_to_rows) < self.max_reads:  
+            for rowi, (row_start, row_end) in enumerate(self.rows):
+                if interval_start > row_end:  # could keep track of row_start as well, in case of random sorted
+                    row = rowi
+                    break
+                elif interval_end < row_start:
+                    row = rowi
+                    break
+
+            cigartuples = interval.read.cigartuples
+            new_start = None
+            new_end = None
+            if row is None:
+                # if (not self.max_reads and not self.max_depth) or (self.max_depth and len(self.rows) < self.max_depth) or (self.max_reads and len(self.intervals_to_rows) < self.max_reads):
+                if (not self.max_depth) or (self.max_depth and len(self.rows) < self.max_depth):
+                    row = len(self.rows)
+                    self.rows.append(None)
+                    new_start = self.scale.topixels(interval.start + (cigartuples[0][1] if cigartuples[0][0] == "4" else 0)) - self.margin_x
+                    new_end = self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x
+                    if interval.label is not None:
+                        new_end += len(interval.label) * self.row_height * 0.75
+                else:
+                    return
+            else:  # if side by side with already laid out read(s) 
+                new_start = min(self.rows[row][0], self.scale.topixels(interval.start + (cigartuples[0][1] if cigartuples[0][0] == "4" else 0)) - self.margin_x)
+                if interval.label:
+                    new_end = max(self.rows[row][1], self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x + (len(interval.label) * self.row_height * 0.75))
+                else:
+                    new_end = max(self.rows[row][1], self.scale.topixels(interval.end + (cigartuples[-1][1] if cigartuples[-1][0] == "4" else 0 )) + self.margin_x)
+
+            self.rows[row] = (new_start, new_end)
+
+        assert not interval.id in self.intervals_to_rows
+        self.intervals_to_rows[interval.id] = row
+
+
+    def layout(self, scale):
+        # super().super().layout(scale)  # skip IntervalTrack.layout() because we would duplicate the read layout checks
+        self.scale = scale
+
+        self.rows = []
+        self.intervals_to_rows = {}
+
+        if self.max_depth:
+            intervals = [_ for _ in self.intervals]
+            random.shuffle(intervals)
+            for interval in intervals:
+                self.layout_interval(interval) #, max_rows = self.max_depth)
+            if len(self.rows) > self.max_depth:
+                self.rows = self.rows[:self.max_depth]
+        elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
+
+            self.intervals = reservoir_sampling(self.intervals, self.max_reads)
+
+            for interval in self.intervals:
+                self.layout_interval(interval)      
+
+        else:
+            for interval in self.intervals:
+                self.layout_interval(interval)
+            
+        self.height = max(1, len(self.rows)) * (self.row_height + self.margin_y)
+
+
+class SingleEndBAMTrack(BAMTrack):
     """
     Displays bam as single-ended reads
     
@@ -90,9 +191,10 @@ class SingleEndBAMTrack(IntervalTrack):
         
         self.draw_read_labels = False
 
-        self.include_read_fn = allreads
+        # self.include_read_fn = allreads
+        self.include_read_fn = None
         self.color_fn = color_by_strand
-        
+
     def fetch(self):
         """
         Iterator over reads from the bam file
@@ -108,13 +210,16 @@ class SingleEndBAMTrack(IntervalTrack):
             for read in bam.fetch(chrom, start, end):
                 if not self.include_read_fn or self.include_read_fn(read):
                     yield read
-        
+
     def __iter__(self):
         c = 0
         for i, read in enumerate(self.fetch()):
             c += 1
             if read.is_unmapped: continue
             if read.is_secondary and not self.include_secondary: continue
+            # is_reverse returns a flag that is the inverse of the strand bool so them being equal means they are opposed
+            # we can use self.scale because iterator is only called after layout(self, scale) sets self.scale
+            if self.strand_specific and read.is_reverse == self.scale.strand: continue
             id_ = read.query_name + str(i)
             interval = Interval(id_, self.scale.chrom, read.reference_start, read.reference_end, 
                                 not read.is_reverse)
@@ -130,7 +235,7 @@ class SingleEndBAMTrack(IntervalTrack):
         """
         # return match_chrom_format(chrom, self.bam.references)
         return match_chrom_format(chrom, self.bam_references)
-        
+
     def layout(self, scale):
         super().layout(scale)
         self.reset_mismatch_counts()
@@ -147,8 +252,8 @@ class SingleEndBAMTrack(IntervalTrack):
             with self.opener_fn(self.bam_path) as bam:
                 self.mismatch_counts.tally_reads(bam)
 
-    def layout_interval(self, interval):
-        super().layout_interval(interval)
+    #def layout_interval(self, interval):
+    #    super().layout_interval(interval)
 
     def draw_interval(self, renderer, interval):
         """
@@ -299,6 +404,9 @@ class SingleEndBAMTrack(IntervalTrack):
         
         # min_width = 2
 
+        # interval might not be mapped due to sampling 
+        if interval.id not in self.intervals_to_rows:
+            return
         row = self.intervals_to_rows[interval.id]
         yoffset = row*(self.row_height+self.margin_y)
 
@@ -531,6 +639,9 @@ class VirtualBAM():
                     yield PileupColumn(ref_pos, pileups[i])
                 i += 1
 
+    def sample(self, max_read_count):
+        self.reads = reservoir_sampling(self.reads, max_read_count)
+
 
 class PairedEndBAMTrack(SingleEndBAMTrack):
     """
@@ -734,7 +845,8 @@ class BAMCoverageTrack(GraphTrack):
         with self.opener_fn(bam_path) as bam:
             self.bam_references = bam.references
         self.include_secondary = False
-        self.stranded_coverage = False
+        self.strand_specific = False  # limit coverage to a strand alone
+        self.stranded_coverage = False  # splits coverage according to strand
         self.min_dist = 0
         self.bin_size = 0
         self.tag = None
@@ -764,7 +876,8 @@ class BAMCoverageTrack(GraphTrack):
 
         with self.opener_fn(self.bam_path) as bam:
             for read in bam.fetch(chrom, scale.start, scale.end):
-                if read.is_secondary and not self.include_secondary:
+                if (read.is_secondary and not self.include_secondary) or \
+                (self.strand_specific and read.is_reverse == scale.strand):  # scale.strand is True for + and False for -, so opposite of read.is_reverse()
                     continue
                 yield read
 
