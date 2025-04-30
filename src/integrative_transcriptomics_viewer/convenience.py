@@ -101,6 +101,14 @@ class TighterSingleEndBAMTrack(itv.SingleEndBAMTrack):
         self.row_height = 3
         self.margin_y = 2
 
+
+class TighterPairedEndBAMTrack(itv.PairedEndBAMTrack):
+    def __init__(self, *args, **kwdargs):
+        super().__init__(*args, **kwdargs)
+        self.row_height = 3
+        self.margin_y = 2
+
+
 def color_from_bed(interval):
     if interval.tx.color and len(interval.tx.color.split(",")) == 3:
         # hex_colors = interval.tx.color.split(",")
@@ -352,6 +360,7 @@ class Configuration:
 
 
     def build_view_row(self, start, end, chrom, strand, bams_dict,
+                       is_paired_end = False,
                        padding_perc = 0.1,
                        add_track_label = "auto",
                        add_reads_label = "auto",
@@ -500,10 +509,16 @@ class Configuration:
                     if add_reads_label == "auto":
                         reads_label = key
 
-                if tighter_track:
-                    bam_track = TighterSingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                if is_paired_end:
+                    if tighter_track:
+                        bam_track = TighterPairedEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    else:
+                        bam_track = itv.PairedEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 else:
-                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    if tighter_track:
+                        bam_track = TighterSingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    else:
+                        bam_track = itv.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 if include_secondary:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
