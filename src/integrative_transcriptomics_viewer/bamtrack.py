@@ -416,7 +416,7 @@ class SingleEndBAMTrack(BAMTrack):
 
         for code, length in read.cigartuples:
             length = int(length)
-            if code == 0 and alnseq is not None: #"M":
+            if (code == 0 or code == 8) and alnseq is not None: # "M" "X":
                 yield from self._draw_mismatch(renderer, length, genome_position, sequence_position, yoffset, alnseq)
 
                 sequence_position += length
@@ -439,6 +439,8 @@ class SingleEndBAMTrack(BAMTrack):
 
                 if code == 4:
                     sequence_position += length
+            # else code == 7:  # "="
+            #     pass
 
 
 
