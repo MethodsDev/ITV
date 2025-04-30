@@ -1,4 +1,4 @@
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 from integrative_transcriptomics_viewer.genomeview import *
 from integrative_transcriptomics_viewer.genomesource import *
