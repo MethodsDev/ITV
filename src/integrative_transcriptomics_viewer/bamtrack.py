@@ -456,8 +456,9 @@ class SingleEndBAMTrack(BAMTrack):
 
                 if code == 4:
                     sequence_position += length
-            # else code == 7:  # "="
-            #     pass
+            elif code == 7:  # "="
+                sequence_position += length
+                genome_position += length
 
 
 
@@ -677,7 +678,7 @@ class VirtualBAM():
                 i += 1
 
     def sample(self, max_read_count):
-        self.reads = reservoir_sampling(self.reads, max_read_count)
+        self.reads = reservoir_sampling(self.reads, max_read_count, len(self))
 
 
 class PairedEndBAMTrack(SingleEndBAMTrack):
