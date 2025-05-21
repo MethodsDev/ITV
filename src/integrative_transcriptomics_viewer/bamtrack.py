@@ -119,13 +119,13 @@ class BAMTrack(IntervalTrack):
             for interval in intervals:
                 self.layout_interval(interval) #, max_rows = self.max_depth)
             if len(self.rows) > self.max_depth:
-                self.rows = self.rows[:self.max_depth]
+                self.rows = self.rows[:self.max_depth]    # layout all reads, then sample n elements from range(len(self.rows)), that will keep the sorting
         elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
 
-            self.intervals = reservoir_sampling(self.intervals, self.max_reads)
+            self.intervals = reservoir_sampling(self.intervals, self.max_reads, len(self))
 
             for interval in self.intervals:
-                self.layout_interval(interval)      
+                self.layout_interval(interval)
 
         else:
             for interval in self.intervals:
@@ -202,19 +202,17 @@ class SingleEndBAMTrack(BAMTrack):
         Overload this method in subclasses to feed this track reads from a different source
         (for example, reads that are already in memory, rather than being read from a file).
         """
-        chrom = self.match_chrom_format(self.scale.chrom)
+        contig = self.match_chrom_format(self.scale.chrom)
         start, end = self.scale.start, self.scale.end
         
         # with pysam.AlignmentFile(self.bam_path) as bam:
         with self.opener_fn(self.bam_path) as bam:
-            for read in bam.fetch(chrom, start, end):
+            for read in bam.fetch(contig, start, end):
                 if not self.include_read_fn or self.include_read_fn(read):
                     yield read
 
     def __iter__(self):
-        c = 0
         for i, read in enumerate(self.fetch()):
-            c += 1
             if read.is_unmapped: continue
             if read.is_secondary and not self.include_secondary: continue
             # is_reverse returns a flag that is the inverse of the strand bool so them being equal means they are opposed
@@ -228,13 +226,32 @@ class SingleEndBAMTrack(BAMTrack):
                 interval.label = read.query_name
             yield interval
 
-    def match_chrom_format(self, chrom):
+
+    def __len__(self):
+        contig = self.match_chrom_format(self.scale.chrom)
+        start, end = self.scale.start, self.scale.end
+        
+        # with pysam.AlignmentFile(self.bam_path) as bam:
+        with self.opener_fn(self.bam_path) as bam:
+            if self.include_read_fn:
+                return(bam.count(contig, start, end, read_callback=self.include_read_fn))
+            elif self.include_secondary:
+                def keep_supp(read):
+                    if read.is_unmapped:
+                        return False
+                    return True
+                return(bam.count(contig, start, end, read_callback=keep_supp))
+            else:
+                return(bam.count(contig, start, end, read_callback="all"))
+
+
+    def match_chrom_format(self, contig):
         """
-        Ensures that the input argument `chrom` matches the chromosome name formatting in
+        Ensures that the input argument `contig` matches the contig name formatting in
         the bam file being visualized (ie "chr14" vs "14").
         """
-        # return match_chrom_format(chrom, self.bam.references)
-        return match_chrom_format(chrom, self.bam_references)
+        # return match_chrom_format(contig, self.bam.references)
+        return match_chrom_format(contig, self.bam_references)
 
     def layout(self, scale):
         super().layout(scale)
@@ -480,6 +497,24 @@ class VirtualBAM():
  
     def __exit__(self, *args):
         return
+    
+    def __len__(self):
+        return len(self.reads)
+    
+    def __count__(self, contig=None, start=None, stop=None, read_callback=None):
+        n = 0
+        if callable(read_callback):
+            for read in self.fetch(contig, start, stop):
+                if read_callback(read):
+                    n += 1
+            return n
+        elif read_callback == "all":
+            for read in self.fetch(contig, start, stop):
+                if not read.is_secondary and not read.is_unmapped:
+                    n += 1
+            return n
+        elif read_callback == "nofilter" or read_callback is None:
+            return len(self.reads)
 
     def index(self):
         if self.is_indexed:
@@ -502,83 +537,83 @@ class VirtualBAM():
             self.full_reads_interval_tree.addi(read.reference_start, read.reference_end, read)
         self.is_indexed = True
 
-    def fetch(self, chrom=None, start=None, end=None):
+    def fetch(self, contig=None, start=None, stop=None):
         seen = set()
         if self.dumb_fetch:
             for read in self.reads:
                 yield read
             return
 
-        if chrom is None:
+        if contig is None:
             if self.is_indexed:
                 if self.aligned_chunks_only:
-                    for interval in sorted(self.reads_interval_tree[start:end]):
+                    for interval in sorted(self.reads_interval_tree[start:stop]):
                         if interval.data not in seen:
                             seen.add(interval.data)
                             yield interval.data
                 else:
-                    for interval in sorted(self.full_reads_interval_tree[start:end]):
+                    for interval in sorted(self.full_reads_interval_tree[start:stop]):
                         yield interval.data
             else:
                 for read in self.reads:
                     yield read
         else:
-            chrom = match_chrom_format(chrom, self.references)
+            contig = match_chrom_format(contig, self.references)
             if self.is_indexed:
                 if self.aligned_chunks_only:
-                    for interval in sorted(self.reads_interval_tree[start:end]):
-                        if interval.data.reference_name == chrom:
+                    for interval in sorted(self.reads_interval_tree[start:stop]):
+                        if interval.data.reference_name == contig:
                             if interval.data not in seen:
                                 seen.add(interval.data)
                                 yield interval.data
                 else:
-                    for interval in sorted(self.full_reads_interval_tree[start:end]):
-                        if interval.data.reference_name == chrom:
+                    for interval in sorted(self.full_reads_interval_tree[start:stop]):
+                        if interval.data.reference_name == contig:
                             yield interval.data
             else:
                 for read in self.reads:
-                    if read.reference_name == chrom and read.reference_start < end and read.reference_end > start:
+                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:
                         yield read
 
 
-    def point_fetch(self, chrom=None, start=None, end=None):
-        if chrom is None:
+    def point_fetch(self, contig=None, start=None, stop=None):
+        if contig is None:
             if self.is_indexed:
-                for interval in sorted(self.reads_interval_tree[start:end]):
+                for interval in sorted(self.reads_interval_tree[start:stop]):
                     yield interval.data
             else:
                 for read in self.reads:
                     yield read
         else:
-            chrom = match_chrom_format(chrom, self.references)
+            contig = match_chrom_format(contig, self.references)
             if self.is_indexed:
-                for interval in sorted(self.reads_interval_tree[start:end]):
+                for interval in sorted(self.reads_interval_tree[start:stop]):
                 #for interval in self.reads_interval_tree[start]:
-                    if interval.data.reference_name == chrom:
+                    if interval.data.reference_name == contig:
                         yield interval.data
             else:
                 for read in self.reads:
-                    if read.reference_name == chrom and read.reference_start < end and read.reference_end > start:
+                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:
                         yield read
 
 
     # truncate is always True for the implementation, but have the argument existing for compatibility
-    def pileup(self, chrom, start, end, truncate=True, min_base_quality=13, step_size=100):
-        chrom = match_chrom_format(chrom, self.references)
+    def pileup(self, contig, start, stop, truncate=True, min_base_quality=13, step_size=100):
+        contig = match_chrom_format(contig, self.references)
     
-        # for ref_pos in range(start, end, step_size):
-        if step_size > end - start:
-            step_size = end - start
+        # for ref_pos in range(start, stop, step_size):
+        if step_size > stop - start:
+            step_size = stop - start
 
-        for window_start in range(start, end, step_size):
+        for window_start in range(start, stop, step_size):
 
             window_end = window_start + step_size
-            window_end = end if window_end > end else window_end
+            window_end = stop if window_end > stop else window_end
 
             pileups = np.empty(window_end - window_start, dtype=object)
             pileups[...] = [[] for _ in range(pileups.shape[0])]
                    
-            for read in self.fetch(chrom, window_start, window_end):
+            for read in self.fetch(contig, window_start, window_end):
                 ref_position = read.reference_start
                 query_position = 0  # Initialize query_position to the start of the read
                 current_window_index = 0
@@ -663,8 +698,8 @@ class PairedEndBAMTrack(SingleEndBAMTrack):
         self.scale = scale
         self.reset_mismatch_counts()
         
-        # for chrom, start, end in self.scale.regions():
-        chrom, start, end = self.scale.chrom, self.scale.start, self.scale.end
+        # for contig, start, end in self.scale.regions():
+        contig, start, end = self.scale.chrom, self.scale.start, self.scale.end
         cur_read_coords = collections.defaultdict(list)
 
         for read in self.fetch():
@@ -683,7 +718,7 @@ class PairedEndBAMTrack(SingleEndBAMTrack):
         for read_name, coords in sorted(cur_read_coords.items(), key=lambda x: x[1]):
             pair_start = coords[0][0]
             pair_end = coords[-1][1]
-            interval = Interval(read_name, chrom, pair_start, pair_end)
+            interval = Interval(read_name, contig, pair_start, pair_end)
             if self.draw_read_labels:
                 interval.label = read_name
             self.layout_interval(interval)
@@ -696,7 +731,7 @@ class PairedEndBAMTrack(SingleEndBAMTrack):
         reads = [read for read in reads if not read.is_unmapped]
         if len(reads) == 0: return
 
-        chrom = reads[0].reference_name
+        contig = reads[0].reference_name
         row = self.intervals_to_rows[reads[0].query_name]
         
         pair_start = None
@@ -720,7 +755,7 @@ class PairedEndBAMTrack(SingleEndBAMTrack):
             yield from renderer.line(x1, y, x2, y, **{"stroke-width":1, "stroke":"gray"})
         
         for i, read_end in enumerate(reads):
-            interval = Interval(read_end.query_name, chrom, read_end.reference_start,
+            interval = Interval(read_end.query_name, contig, read_end.reference_start,
                                 read_end.reference_end, not read_end.is_reverse)
             
             if self.draw_read_labels:
@@ -810,9 +845,9 @@ class GroupedBAMTrack(Track):
         self.scale = scale
         
         categories = set()
-        chrom = match_chrom_format(self.scale.chrom, self.bam.references)
+        contig = match_chrom_format(self.scale.chrom, self.bam.references)
         
-        for read in self.bam.fetch(chrom, self.scale.start, self.scale.end):
+        for read in self.bam.fetch(contig, self.scale.start, self.scale.end):
             category = self.keyfn(read)
             categories.add(category)
         
@@ -874,10 +909,10 @@ class BAMCoverageTrack(GraphTrack):
             self.add_single_coverage(scale)
 
     def _get_reads(self, scale):
-        chrom = match_chrom_format(scale.chrom, self.bam_references)
+        contig = match_chrom_format(scale.chrom, self.bam_references)
 
         with self.opener_fn(self.bam_path) as bam:
-            for read in bam.fetch(chrom, scale.start, scale.end):
+            for read in bam.fetch(contig, scale.start, scale.end):
                 if (read.is_secondary and not self.include_secondary) or \
                 (self.strand_specific and read.is_reverse == scale.strand):  # scale.strand is True for + and False for -, so opposite of read.is_reverse()
                     continue

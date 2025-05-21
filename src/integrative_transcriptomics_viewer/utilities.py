@@ -4,7 +4,8 @@ import gzip
 import bz2
 import math
 import random
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Iterable, Iterator
+from itertools import islice
 
 
 def match_chrom_format(chrom, keys):
@@ -84,17 +85,17 @@ def my_hook_compressed(filename, mode):
     else:
         return open(filename, mode)
 
-
-def reservoir_sampling(iterable_to_sample, sample_size):
-    # could add a check of whether it's a generator or not? to only run this first line if it is
-    sampling_pool = [_ for _ in iterable_to_sample]
-
-    if len(sampling_pool) > sample_size:
+        
+def reservoir_sampling_from_iterable(iterable_to_sample, sample_size, iterable_length):
+    if iterable_length > sample_size:
+        iterable_iter = iterable_to_sample.__iter__()
+        
         # initial fill of the reservoir
-        reservoir = sampling_pool[:sample_size]
+        reservoir = [(item, i) for i, item in enumerate(islice(iterable_iter, sample_size))]
+        latest_index = sample_size
 
         i = sample_size
-        n = len(sampling_pool) - 1
+        n = iterable_length - 1
         W = math.exp(math.log(random.random()) / sample_size)
         while i < n:
             # jump to the next element that will replace another in the reservoir
@@ -102,9 +103,53 @@ def reservoir_sampling(iterable_to_sample, sample_size):
 
             # if we didn't reach the end of the list of stuff to sample yet
             if i < n:
-                reservoir[random.randint(0, sample_size - 1)] = sampling_pool[i]  # random index between 1 and k, inclusive
+                # reservoir[random.randint(0, sample_size - 1)] = iterable_to_sample[i]  # random index between 1 and k, inclusive
+                for _ in range(i - 1 - latest_index):
+                    next(iterable_iter)
+                reservoir[random.randint(0, sample_size - 1)] = (next(iterable_iter), i)  # random index between 1 and k, inclusive
+                latest_index = i
                 W = W * math.exp(math.log(random.random()) / sample_size)
+        
+        # sorting by original index to keep input sorting
+        reservoir = [item for item, _ in sorted(reservoir, key=lambda x: x[1])]
         return reservoir
     else:
-        return sampling_pool
+        return iterable_to_sample
 
+
+def reservoir_sampling_from_iterator(iterator_to_sample, sample_size, iterator_length):
+    # sampling_pool = [_ for _ in iterable_to_sample]
+
+    if len(iterator_length) > sample_size:
+        # initial fill of the reservoir
+        reservoir = [(iterator_to_sample.next(), i) for i in range(sample_size)]
+        latest_index = sample_size
+
+        i = sample_size
+        n = iterator_length - 1
+        W = math.exp(math.log(random.random()) / sample_size)
+        while i < n:
+            # jump to the next element that will replace another in the reservoir
+            i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
+
+            # if we didn't reach the end of the list of stuff to sample yet
+            if i < n:
+                for j in range(latest_index, i-1):
+                    iterator_to_sample.next()
+                reservoir[random.randint(0, sample_size - 1)] = (iterator_to_sample.next(), i)  # random index between 1 and k, inclusive
+                latest_index = i
+                W = W * math.exp(math.log(random.random()) / sample_size)
+                
+        # sorting by original index to keep input sorting
+        reservoir = [item for item, _ in sorted(reservoir, key=lambda x: x[1])]
+        return reservoir
+    else:
+        return iterator_to_sample
+
+    
+def reservoir_sampling(iter_to_sample, sample_size, iter_len):
+    # could add a check of whether it's a generator or not? to only run this first line if it is
+    if isinstance(iter_to_sample, Iterator):
+        return reservoir_sampling_from_iterator(iter_to_sample, sample_size, iter_len)
+    else:
+        return reservoir_sampling_from_iterable(iter_to_sample, sample_size, iter_len)
