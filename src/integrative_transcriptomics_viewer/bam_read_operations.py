@@ -1,14 +1,14 @@
 from integrative_transcriptomics_viewer.bamtrack import VirtualBAM
 from intervaltree import Interval
+from integrative_transcriptomics_viewer.settings import bam_threads
 
 import pysam
 
 def get_bam_opener(bam):
     if isinstance(bam, VirtualBAM):
-        opener_fn = lambda x: x
+        return lambda x: x
     else:
-        opener_fn = pysam.AlignmentFile
-    return opener_fn
+        return lambda x: pysam.AlignmentFile(x, threads=bam_threads)
 
 
 def get_virtualbam_max_coverage(coverage_bam):
