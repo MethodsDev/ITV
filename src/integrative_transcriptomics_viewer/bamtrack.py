@@ -502,7 +502,7 @@ class VirtualBAM():
     def __len__(self):
         return len(self.reads)
     
-    def __count__(self, contig=None, start=None, stop=None, read_callback=None):
+    def count(self, contig=None, start=None, stop=None, read_callback=None):
         n = 0
         if callable(read_callback):
             for read in self.fetch(contig, start, stop):
