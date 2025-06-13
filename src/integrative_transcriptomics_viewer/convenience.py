@@ -453,15 +453,11 @@ class Configuration:
         if row is None:
             row = itv.ViewRow("row")
 
-        # padding = math.ceil((end - start) * padding_perc)
-
-        # gene_view = itv.GenomeView(chrom, max(0, start - padding), end + padding, strand, self.genome_fasta)
+        start, end = get_padded_coordinates(start, end, padding_perc)
         gene_view = itv.GenomeView(chrom, start, end, strand, self.genome_fasta)
 
-        # gene_view = itv.GenomeView(chrom, start - padding, end + padding, "+", self.source)
         if add_track_label:
             if add_track_label == "auto":
-                # gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start - padding) + " - " + str(end + padding)))
                 gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start) + " - " + str(end)))
             else:
                 gene_view.add_track(itv.track.TrackLabel(add_track_label))
