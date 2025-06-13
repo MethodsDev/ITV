@@ -144,6 +144,10 @@ def interval_data_reduce(current_data, new_data):
         return None
 
 
+def get_padded_coordinates(start, end, padding_perc):
+    padding = math.ceil((end - start) * padding_perc)
+    return (max(0, start - padding), end + padding)
+
 
 class Configuration:
     """
@@ -446,16 +450,19 @@ class Configuration:
         The ViewRow to which the view was added : :py:class:`integrative_transcriptomics_viewer.ViewRow`
         """
 
-
-        padding = math.ceil((end - start) * padding_perc)
-
         if row is None:
             row = itv.ViewRow("row")
-        gene_view = itv.GenomeView(chrom, max(0, start - padding), end + padding, strand, self.genome_fasta)
+
+        # padding = math.ceil((end - start) * padding_perc)
+
+        # gene_view = itv.GenomeView(chrom, max(0, start - padding), end + padding, strand, self.genome_fasta)
+        gene_view = itv.GenomeView(chrom, start, end, strand, self.genome_fasta)
+
         # gene_view = itv.GenomeView(chrom, start - padding, end + padding, "+", self.source)
         if add_track_label:
             if add_track_label == "auto":
-                gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start - padding) + " - " + str(end + padding)))
+                # gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start - padding) + " - " + str(end + padding)))
+                gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start) + " - " + str(end)))
             else:
                 gene_view.add_track(itv.track.TrackLabel(add_track_label))
 
@@ -1695,10 +1702,10 @@ class Configuration:
 
                     #for bam_name, bam_file in bams_dict.items():
                     virtual_bams_dict[feature].update(itv.split_bam_by_cellbarcode_whitelist(bam_name,
-                                                                                                                            bam_file,
-                                                                                                                            interval,
-                                                                                                                            cellbarcode_whitelist = cellbarcode_whitelist,
-                                                                                                                            cellbarcode_from = cellbarcode_from))
+                                                                                             bam_file,
+                                                                                             interval,
+                                                                                             cellbarcode_whitelist = cellbarcode_whitelist,
+                                                                                             cellbarcode_from = cellbarcode_from))
             else:
                 for bam_name, bam_file in bams_dict.items():
                     virtual_bams_dict[feature][bam_name] = bam_file
@@ -1790,11 +1797,11 @@ class Configuration:
         virtual_bams_dict = {}
         for bam_name, bam_file in bams_dict.items():
             virtual_bams_dict.update(itv.split_bam_by_classification(bam_file = bam_file,
-                                                                                                    name_prefix = bam_name,
-                                                                                                    feature_id = feature_id,
-                                                                                                    interval = interval,
-                                                                                                    classification_from = classification_from,
-                                                                                                    **kwargs))
+                                                                     name_prefix = bam_name,
+                                                                     feature_id = feature_id,
+                                                                     interval = interval,
+                                                                     classification_from = classification_from,
+                                                                     **kwargs))
 
         # parse known annotations
         virtual_bed_dict = self.match_classification_to_bed_entries(virtual_bams_dict.keys(), interval, annotation_matching)
@@ -1861,6 +1868,7 @@ class Configuration:
                                        annotation_matching,
                                        page_title = "Split by Classification",
                                        add_all_tab = True,
+                                       padding_perc = 0.1,
                                        **kwargs):
         """
         Returns an HTML object to output or display, with views separated over tabs by the list of features provided. Within tabs, split in subtabs by BAMs.
@@ -1894,16 +1902,19 @@ class Configuration:
 
         interval = self.get_interval_from_feature((feature_id, feature_type))
 
+        start, end = get_padded_coordinates(start = interval.begin, end = interval.end, padding_perc = padding_perc)
+        interval = Interval(start, end, interval.data)
+
         virtual_bams_dict_dict = {}
         if add_all_tab:
             virtual_bams_dict_dict["all"] = {} 
         for bam_name, bam_file in bams_dict.items():
             for classification, virtual_bam in (itv.split_bam_by_classification(bam_file = bam_file,
-                                                                                                               name_prefix = "",
-                                                                                                               feature_id = feature_id,
-                                                                                                               interval = interval,
-                                                                                                               classification_from = classification_from,
-                                                                                                               **kwargs)).items():
+                                                                                name_prefix = "",
+                                                                                feature_id = feature_id,
+                                                                                interval = interval,
+                                                                                classification_from = classification_from,
+                                                                                **kwargs)).items():
                 if classification not in virtual_bams_dict_dict:
                     virtual_bams_dict_dict[classification] = {}
                 virtual_bams_dict_dict[classification][bam_name] = virtual_bam     
