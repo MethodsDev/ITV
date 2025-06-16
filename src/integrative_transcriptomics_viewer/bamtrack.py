@@ -1080,6 +1080,8 @@ class BAMCoverageTrack(GraphTrack):
 
         for _coverage, _layers in zip([coverage, secondary_coverage], [layers, secondary_layers]):
             for i in sorted(_coverage):
+                if not _coverage[i]:
+                    continue
                 x, y = zip(*sorted(_coverage[i].items()))  # is this better than just for (x,y in coverage[i].items()){cumulative_coverage[x] += y} ?
                 x = np.array(x)
                 y = np.array(y)
