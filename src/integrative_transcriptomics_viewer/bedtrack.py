@@ -247,7 +247,7 @@ class BEDTrack(IntervalTrack):
             else:
                 cur_end = self.scale.topixels(next_exon[0])
 
-            direction = "right" if interval.strand=="+" else "left"
+            direction = "right" if interval.strand else "left"
             n_arrows = int(round((cur_end-cur_start) / (self.row_height*0.75)))
 
             # print("  ", i, cur_exon, next_exon)
