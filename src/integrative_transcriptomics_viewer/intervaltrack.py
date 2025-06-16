@@ -3,7 +3,7 @@ from integrative_transcriptomics_viewer.track import Track
 
 
 class Interval:
-    def __init__(self, id_, chrom, start, end, strand="+", label=None):
+    def __init__(self, id_, chrom, start, end, strand=True, label=None):
         self.chrom = chrom
         self.start = start
         self.end = end
@@ -150,7 +150,7 @@ class IntervalTrack(Track):
                 **{"stroke":"none", "id":temp_label})
         else:
             arrow_width = min(self.row_height / 2, self.margin_x * 0.7, self.scale.relpixels(30))
-            direction = "right" if interval.strand=="+" else "left"
+            direction = "right" if interval.strand else "left"
 
             yield from renderer.block_arrow(start, top, end-start, self.row_height, 
                 arrow_width=arrow_width, direction=direction,

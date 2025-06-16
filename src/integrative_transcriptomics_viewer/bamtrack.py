@@ -384,7 +384,7 @@ class SingleEndBAMTrack(BAMTrack):
             if side == "left":
                 curstart = self.scale.topixels(genome_position - length - 0.5)
                 curend = self.scale.topixels(genome_position + 0.5)
-                if strand == "+": # don't make an arrow, just a rectangle
+                if strand: # don't make an arrow, just a rectangle
                     strand = None
             elif side == "right":
                 curstart = self.scale.topixels(genome_position - 0.5)
@@ -405,7 +405,7 @@ class SingleEndBAMTrack(BAMTrack):
                                          **extras)
             else:
                 arrow_width = min(self.row_height / 2, self.margin_x * 0.7, self.scale.relpixels(30))
-                direction = "right" if strand == "+" else "left"
+                direction = "right" if strand else "left"
 
                 yield from renderer.block_arrow(left, top, width, self.row_height,
                     arrow_width=arrow_width, direction=direction,
@@ -942,8 +942,8 @@ class BAMCoverageTrack(GraphTrack):
 
         # flag to indicate which side RT started from
         is_fwd = (
-            (scale.strand == "+" and self.priming_orientation == "5p")
-            or (scale.strand == "-" and self.priming_orientation == "3p")
+            (scale.strand and self.priming_orientation == "5p")
+            or (not scale.strand and self.priming_orientation == "3p")
         )
 
         # Parse the BAM file and bin by alignment start position, then keep track of all covered blocks' start and ends
@@ -978,8 +978,8 @@ class BAMCoverageTrack(GraphTrack):
 
         # flag to indicate which side RT started from
         is_fwd = (
-            (scale.strand == "+" and self.priming_orientation == "5p")
-            or (scale.strand == "-" and self.priming_orientation == "3p")
+            (scale.strand and self.priming_orientation == "5p")
+            or (not scale.strand and self.priming_orientation == "3p")
         )
 
         for read in self._get_reads(scale):
@@ -1048,7 +1048,7 @@ class BAMCoverageTrack(GraphTrack):
             self._add_multi_coverage(scale, coverage, secondary_coverage)
 
     def add_stranded_coverage(self, scale):
-        is_fwd = (scale.strand == "+")
+        is_fwd = scale.strand
 
         # adding 01 and 02 before key names for the ordering
         coverage = {"01_sense": collections.Counter(),
