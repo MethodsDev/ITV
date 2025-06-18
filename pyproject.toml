@@ -20,12 +20,14 @@ classifiers = [
 ]
 dynamic = ["dependencies", "version"]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["templates/*.html"]
+integrative_transcriptomics_viewer = ["templates/*.html"]
 
 
 [tool.setuptools.dynamic]
