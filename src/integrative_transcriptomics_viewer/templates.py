@@ -4,7 +4,7 @@ import uuid
 
 def get_jinja_environment():
     env = Environment(
-        loader=PackageLoader('integrative_transcriptomics_viewer', '../templates'),
+        loader=PackageLoader('integrative_transcriptomics_viewer', 'templates'),
         autoescape=select_autoescape(['html', 'xml'])
     )
     return env
