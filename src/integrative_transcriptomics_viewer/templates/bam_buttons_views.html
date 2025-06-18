@@ -3,22 +3,28 @@
 {% endfor %}
     <br/>
 
-{% if tab.shared_static_svg %}
-    <div class="itv-content static-itv-content">
-        {{ tab.shared_static_svg | safe }}
-    </div>
-{% endif %}
-
-
-{% for tab_section in tab.tab_sections %}
-    <div id="{{ tab_section.unique_id }}" class="itv-content" style="display: {% if tab_section.expended %}block{% else %}none{% endif %};">
-        <div class="itv-content static-itv-content">
-            {{ tab_section.static_svg | safe }}
-        </div>
-        {% if tab_section.resizable_svg %}
-        <div id="svgContainer" class="resizable">
-            {{ tab_section.resizable_svg | safe }}
-        </div>
+<div class="horizontal-resize-container">
+    <div class="horizontal-resize-inner">
+        {% if tab.shared_static_svg %}
+            <div class="itv-content static-itv-content">
+                {{ tab.shared_static_svg | safe }}
+            </div>
         {% endif %}
+
+        {% for tab_section in tab.tab_sections %}
+            <div id="{{ tab_section.unique_id }}" class="itv-content" style="display: {% if tab_section.expended %}block{% else %}none{% endif %};">
+                <div class="vertical-resize-container-wrapper">
+                    <div class="itv-content static-itv-content">
+                        {{ tab_section.static_svg | safe }}
+                    </div>
+                    {% if tab_section.resizable_svg %}
+                        <div class="resizable-vertical">
+                            {{ tab_section.resizable_svg | safe }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        <div class="horizontal-resize-spacer"></div>
     </div>
-{% endfor %}
+</div>

@@ -69,7 +69,7 @@
                 border-top: none;
             }
             
-            .resizable {
+/*            .resizable {
                 overflow: auto;
                 resize: both;
                 border: 1px solid black;
@@ -79,7 +79,75 @@
                 min-width: 200px;
                 min-height: 50px;
                 position: relative;
+            }*/
+
+            /* Outer horizontal resizeable box */
+            .horizontal-resize-container {
+                resize: horizontal;
+                overflow-x: auto;
+                overflow-y: visible;
+                display: block;
+                width: 100%; 
+                min-width: 300px;
+                max-width: 100%;
+                border: 1px solid #333;
+                padding: 0;
+                box-sizing: border-box;
             }
+
+            /* Prevent SVGs from scaling */
+            .horizontal-resize-container svg {
+                width: auto;
+                height: auto;
+                display: block;
+                vertical-align: top;
+            }
+
+            .horizontal-resize-inner {
+                display: inline-block; /* allows overflow to occur for horizontal scrolling to be enabled */
+                white-space: nowrap;
+            }
+
+            /* No float/overlap */
+            .static-itv-content,
+            .resizable-vertical {
+                display: block;
+                clear: both;
+            }
+
+            /* Container for static + resizable vertically stacked */
+            .vertical-resize-container-wrapper {
+                display: block;
+                width: 100%;
+            }
+
+            /* Inner vertical resize box */
+            .resizable-vertical {
+                resize: vertical;
+                overflow-y: auto;
+                overflow-x: hidden;
+                border: 1px solid black;
+                min-height: 100px;
+                max-height: 100%;
+                padding: 0;
+                margin-top: 6px;
+                box-sizing: border-box;
+            }
+
+            /* Prevent SVGs from scaling */
+            .resizable-vertical svg {
+                width: auto;
+                height: auto;
+                display: block;
+            }
+
+            .horizontal-resize-spacer {
+                display: inline-block;
+                width: 20px;  /* same or slightly more than the grab zone for vertical resizer */
+                height: 1px;  /* doesn't affect height */
+                pointer-events: none;  /* invisible to mouse */
+            }
+
         </style>
     </head>
     <body>
