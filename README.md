@@ -12,4 +12,4 @@ Requires mamba (conda)
 > make install
 
 You can then activate the mamba environment with:
-> conda activate itv-1.1.1
+> conda activate itv-1.1.2
