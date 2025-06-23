@@ -389,7 +389,7 @@ class SingleEndBAMTrack(BAMTrack):
             elif side == "right":
                 curstart = self.scale.topixels(genome_position - 0.5)
                 curend = self.scale.topixels(genome_position+length + 0.5)
-                if strand == "-": # don't make an arrow, just a rectangle
+                if not strand: # don't make an arrow, just a rectangle
                     strand = None
             else:
                 curstart = self.scale.topixels(genome_position - 0.5)
