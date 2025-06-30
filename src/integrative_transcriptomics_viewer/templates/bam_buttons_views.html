@@ -1,3 +1,8 @@
+<!-- Display tab name above the collapsible buttons -->
+<div class="tab-name-label">
+    {{ tab.tab_name }}
+</div>
+
 {% for tab in tab.tab_sections %}
     <button type="button" class="collapsible {% if tab.expended %}active{% endif %}" data-target="{{ tab.unique_id }}">{{ tab.name }}</button>
 {% endfor %}
