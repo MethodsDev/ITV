@@ -139,8 +139,8 @@ def split_bam_by_classification(bam_file,
 
     opener_fn = get_bam_opener(bam_file)
 
-    if name_prefix and name_prefix != "":
-        name_prefix += "_"
+    # if name_prefix and name_prefix != "":
+    #     name_prefix += "_"
 
     tmp_reads = {}
     with opener_fn(bam_file) as bam:
@@ -162,16 +162,21 @@ def split_bam_by_classification(bam_file,
 
             classifications = classification_from.get_classification(read, feature_id)
             if classifications is None:
-                if name_prefix + whitelist + "unclassified" not in tmp_reads:
-                    tmp_reads[name_prefix + whitelist + "unclassified"] = []
-                tmp_reads[name_prefix + whitelist + "unclassified"].append(read)
+                # if name_prefix + whitelist + "unclassified" not in tmp_reads:
+                if (name_prefix, whitelist, "unclassified") not in tmp_reads:
+                    # tmp_reads[name_prefix + whitelist + "unclassified"] = []
+                    tmp_reads[(name_prefix, whitelist, "unclassified")] = []
+                # tmp_reads[name_prefix + whitelist + "unclassified"].append(read)
+                tmp_reads[(name_prefix, whitelist, "unclassified")].append(read)
 
             else:
                 for classification in classifications:
-                    if name_prefix + whitelist + classification not in tmp_reads:
-                        tmp_reads[name_prefix + whitelist + classification] = []
-                    tmp_reads[name_prefix + whitelist + classification].append(read)
-
+                    # if name_prefix + whitelist + classification not in tmp_reads:
+                    if (name_prefix, whitelist, classification) not in tmp_reads:
+                        # tmp_reads[name_prefix + whitelist + classification] = []
+                        tmp_reads[(name_prefix, whitelist, classification)] = []
+                    # tmp_reads[name_prefix + whitelist + classification].append(read)
+                    tmp_reads[(name_prefix, whitelist, classification)].append(read)
     
     virtual_bams_dict = {}
     for key, reads in tmp_reads.items():
