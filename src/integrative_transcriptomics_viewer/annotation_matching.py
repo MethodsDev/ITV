@@ -19,10 +19,10 @@ class IsoquantSubstringAnnotationMatching(AnnotationMatching):
     """
 
     def match(self, query_annotation, target_annotation):
-        if query_annotation in target_annotation or \
-           target_annotation in query_annotation or \
-           query_annotation.split("|")[0] in target_annotation or \
-           target_annotation.split("|")[0] in query_annotation:
+        if query_annotation[2] in target_annotation or \
+           target_annotation in query_annotation[2] or \
+           query_annotation[2].split("|")[0] in target_annotation or \
+           target_annotation.split("|")[0] in query_annotation[2]:
             return True
         else:
             return False
@@ -34,7 +34,9 @@ class TaggedBAMAnnotationMatching(AnnotationMatching):
     """
 
     def match(self, query_annotation, target_annotation):  # target = known, query = bam tag
-        queries = set(query_annotation.split(";"))
+        if len(query_annotation) == 1:  #  ("all",)
+            return True
+        queries = set(query_annotation[2].split(";"))
         targets = set(target_annotation.split("|"))
         intersect = queries & targets
         if len(intersect) == 0:
