@@ -1533,7 +1533,8 @@ class Configuration:
 
             tab_sections.append({
                 'unique_id': f"{tab_id}_{key}",
-                'name': f"{tab_name}_{key}",
+                # 'name': f"{tab_name}_{key}",
+                'name': f"{key}",
                 'static_svg': static_svg,
                 'resizable_svg': resizable_svg,
                 'expended': expended
@@ -1632,7 +1633,7 @@ class Configuration:
         """
 
         if tab_title_fn is None:  # workaround because can't set a self.method as default parameter
-            tab_title_fn = lambda x: x
+            tab_title_fn = lambda x: "_".join([_ for _ in x if _])
 
 
         tabs = []
@@ -1903,7 +1904,7 @@ class Configuration:
 
         virtual_bams_dict_dict = {}
         if add_all_tab:
-            virtual_bams_dict_dict["all"] = {} 
+            virtual_bams_dict_dict[("all", )] = {} 
         for bam_name, bam_file in bams_dict.items():
             for classification, virtual_bam in (itv.split_bam_by_classification(bam_file = bam_file,
                                                                                 name_prefix = "",
@@ -1916,7 +1917,7 @@ class Configuration:
                 virtual_bams_dict_dict[classification][bam_name] = virtual_bam     
 
             if add_all_tab:
-                virtual_bams_dict_dict["all"][bam_name] = bam_file 
+                virtual_bams_dict_dict[("all", )][bam_name] = bam_file 
 
         # parse known annotations
         virtual_bed_dict = self.match_classification_to_bed_entries(virtual_bams_dict_dict.keys(), interval, annotation_matching)
@@ -1926,7 +1927,7 @@ class Configuration:
             if classification in virtual_bams_dict_dict:
                 if classification not in virtual_beds_dict_dict:
                     virtual_beds_dict_dict[classification] = {}
-                virtual_beds_dict_dict[classification]['all'] = virtual_bed
+                virtual_beds_dict_dict[classification][("all", )] = virtual_bed
 
 
         tabs = self.organize_tabs_by_classification(bams_dict_dict = virtual_bams_dict_dict,
