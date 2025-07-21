@@ -377,6 +377,7 @@ class Configuration:
                        max_read_depth = None,
                        max_read_count = 100,
                        include_secondary = False,
+                       include_read_fn = None,
                        quick_consensus = False,
                        row = None, 
                        view_width = None,
@@ -504,9 +505,9 @@ class Configuration:
                         reads_label = key
 
                 if tighter_track:
-                    bam_track = TighterSingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    bam_track = TighterSingleEndBAMTrack(value, name=reads_label, include_read_fn=include_read_fn, **opener_kwargs)
                 else:
-                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, include_read_fn=include_read_fn, **opener_kwargs)
                 if include_secondary:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
