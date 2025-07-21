@@ -883,6 +883,7 @@ class BAMCoverageTrack(GraphTrack):
         with self.opener_fn(bam_path) as bam:
             self.bam_references = bam.references
         self.include_secondary = False
+        self.include_read_fn = None
         self.strand_specific = False  # limit coverage to a strand alone
         self.stranded_coverage = False  # splits coverage according to strand
         self.min_dist = 0
@@ -915,7 +916,8 @@ class BAMCoverageTrack(GraphTrack):
         with self.opener_fn(self.bam_path) as bam:
             for read in bam.fetch(contig, scale.start, scale.end):
                 if (read.is_secondary and not self.include_secondary) or \
-                (self.strand_specific and read.is_reverse == scale.strand):  # scale.strand is True for + and False for -, so opposite of read.is_reverse()
+                (self.strand_specific and read.is_reverse == scale.strand) or \  # scale.strand is True for + and False for -, so opposite of read.is_reverse()
+                (self.include_read_fn and not self.include_read_fn(read)): # opposite of condition in SingleEndBAMTrack
                     continue
                 yield read
 

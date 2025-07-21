@@ -481,6 +481,7 @@ class Configuration:
                     if add_coverage_label == "auto":
                         coverage_label = key
                 coverage_track = itv.BAMCoverageTrack(value, name=coverage_label, **opener_kwargs)
+                coverage_track.include_read_fn = include_read_fn
                 coverage_track.strand_specific = strand_specific_bam
                 coverage_track.bin_size = coverage_bin_size
                 coverage_track.priming_orientation = priming_orientation
@@ -505,9 +506,9 @@ class Configuration:
                         reads_label = key
 
                 if tighter_track:
-                    bam_track = TighterSingleEndBAMTrack(value, name=reads_label, include_read_fn=include_read_fn, **opener_kwargs)
+                    bam_track = TighterSingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 else:
-                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, include_read_fn=include_read_fn, **opener_kwargs)
+                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 if include_secondary:
                     coverage_track.include_secondary = True
                     bam_track.include_secondary = True
@@ -516,6 +517,7 @@ class Configuration:
                 bam_track.quick_consensus = quick_consensus
                 bam_track.vertical_layout = vertical_layout_reads
                 bam_track.strand_specific = strand_specific_bam
+                bam_track.include_read_fn = include_read_fn
                 gene_view.add_track(bam_track)
 
         if view_width:
