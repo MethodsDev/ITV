@@ -6,7 +6,7 @@ Drawing shapes and text
 
 Each of the functions below takes as arguments information about the screen coordinates, and yields a series of SVG tags specifying lines, shapes and text to be drawn. Each function also accepts optional ``kwdargs`` which can include additional SVG attributes such as ``fill`` and ``stroke`` colors.
 
-.. autoclass:: genomeview.svg.Renderer
+.. autoclass:: integrative_transcriptomics_viewer.svg.Renderer
 
    .. method:: text(self, x, y, text, size=10, anchor="middle", family="Helvetica", **kwdargs)
 
@@ -37,6 +37,6 @@ Each of the functions below takes as arguments information about the screen coor
 Converting genomic coordinates to screen coordinates
 ----------------------------------------------------
 
-.. autoclass:: genomeview.Scale
+.. autoclass:: integrative_transcriptomics_viewer.Scale
    :members:
    :undoc-members: 

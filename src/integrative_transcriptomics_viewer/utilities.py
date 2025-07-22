@@ -118,7 +118,7 @@ def reservoir_sampling_from_iterable(iterable_to_sample, sample_size, iterable_l
 
 
 def reservoir_sampling_from_iterator(iterator_to_sample, sample_size, iterator_length):
-    # sampling_pool = [_ for _ in iterable_to_sample]
+    # sampling_pool = [_ for _ in iterable_to_sample]
 
     if len(iterator_length) > sample_size:
         # initial fill of the reservoir

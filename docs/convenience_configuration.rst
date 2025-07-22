@@ -10,9 +10,9 @@ API
 Reference specific configuration
 ================================
 
-Objects of type :class:`~genomeview.Configuration` store information related to a reference to allow easily plotting a number of standard views/reports for the BAMs provided.
+Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store information related to a reference to allow easily plotting a number of standard views/reports for the BAMs provided.
 
-.. autoclass:: genomeview.Configuration
+.. autoclass:: integrative_transcriptomics_viewer.Configuration
    :members:
 
 
@@ -21,13 +21,13 @@ Cell Barcode
 
 Implementations for obtaining cell barcode information for the most common encodings.
 
-.. autoclass:: genomeview.HaasStyleCellBarcode
+.. autoclass:: integrative_transcriptomics_viewer.HaasStyleCellBarcode
    :members:
 
-.. autoclass:: genomeview.ONTCellBarcode
+.. autoclass:: integrative_transcriptomics_viewer.ONTCellBarcode
    :members:
 
-.. autoclass:: genomeview.StandardCellBarcode
+.. autoclass:: integrative_transcriptomics_viewer.StandardCellBarcode
    :members:
 
 
@@ -36,6 +36,6 @@ Read Classification
 
 Implementation for obtaining the classification of a read for the most common encodings.
 
-.. autoclass:: genomeview.IsoQuantClassification
+.. autoclass:: integrative_transcriptomics_viewer.IsoQuantClassification
    :members:
 

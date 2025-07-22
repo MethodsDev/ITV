@@ -1,9 +1,9 @@
 .. _details:
 
-GenomeView Details
+ITV Details
 ==================
 
-In the :ref:`previous section <tutorial>`, we saw how the :py:func:`genomeview.visualize_data()` quickly assembled a document to visualize read data. Here, we'll discuss the behind-the-scenes work of setting up a document, views and adding tracks. These steps are useful if you wish to customize any aspect of the visualization process.
+In the :ref:`previous section <tutorial>`, we saw how the :py:func:`integrative_transcriptomics_viewer.visualize_data()` quickly assembled a document to visualize read data. Here, we'll discuss the behind-the-scenes work of setting up a document, views and adding tracks. These steps are useful if you wish to customize any aspect of the visualization process.
 
 .. contents:: :local:
 
@@ -13,7 +13,7 @@ Step 1: creating the document
 
 First we'll need a document. The only argument is to define the width of the view (think of this as its pixel width)::
     
-    doc = genomeview.Document(900)
+    doc = integrative_transcriptomics_viewer.Document(900)
 
 The document is where all the genome views will end up.
 
@@ -27,11 +27,11 @@ To create a genome view, you'll optionally first create a genome "source" (basic
 
 Then, derive a view with the coordinates you'd like to visualize::
     
-    source = genomeview.FastaGenomeSource("/path/to/hg19.fasta")
-    view = genomeview.GenomeView("chr1", 219158937, 219169063, "+", source)
+    source = integrative_transcriptomics_viewer.FastaGenomeSource("/path/to/hg19.fasta")
+    view = integrative_transcriptomics_viewer.GenomeView("chr1", 219158937, 219169063, "+", source)
     doc.add_view(view)
 
-You can add as many genome views as you'd like to a single document, allowing you to visualize multiple genomic loci in the same document. Use :py:class:`genomeview.ViewRow` to render multiple views in a horizontal row.
+You can add as many genome views as you'd like to a single document, allowing you to visualize multiple genomic loci in the same document. Use :py:class:`integrative_transcriptomics_viewerintegrative_transcriptomics_viewer.ViewRow` to render multiple views in a horizontal row.
 
 
 Step 3: adding the tracks to the genome view
@@ -41,10 +41,10 @@ The next step is to create tracks visualizing the actual data and add them to th
 
 For example::
 
-    bam_track_hg002 = genomeview.SingleEndBAMTrack("/path/to/hg002.sorted.bam", name="HG002")
+    bam_track_hg002 = integrative_transcriptomics_viewer.SingleEndBAMTrack("/path/to/hg002.sorted.bam", name="HG002")
     view.add_track(bam_track_hg002)
 
-    axis_track = genomeview.Axis()
+    axis_track = integrative_transcriptomics_viewer.Axis()
     view.add_track(axis_track)
 
 
@@ -53,6 +53,6 @@ Step 4: exporting the visualization
 
 As mentioned in the previous section, the document can easily be visualized in-line in jupyter simply by placing the name of the document variable by itself at the end of a cell.
 
-In addition, documents can be saved to SVG, PDF or PNG files using the :py:func:`genomeview.save()` (format is inferred from the provided file-name extension).
+In addition, documents can be saved to SVG, PDF or PNG files using the :py:func:`integrative_transcriptomics_viewer.save()` (format is inferred from the provided file-name extension).
 
 Note that conversion to PDF/PNG requires `inkscape <https://inkscape.org/>`_, `libRsvg <https://wiki.gnome.org/action/show/Projects/LibRsvg>`_ or (PDF only) `webkitToPDF <https://github.com/nspies/webkitToPDF>`_ to be installed.

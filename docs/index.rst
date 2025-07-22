@@ -14,10 +14,10 @@ GenomeView Overview
    rendering
    advanced_usage
 
-What is GenomeView?
+What is ITV?
 ===================
 
-GenomeView visualizes genomic data straight from python. Features include:
+Integrative Transcriptomics Viewer (ITV) visualizes genomic data straight from python. It is based on GenomeView. Features include:
 
 * Easily extensible
 * Integrates with `jupyter notebook <http://jupyter.readthedocs.io/en/latest/index.html>`_ / `jupyterlab <https://github.com/jupyterlab/jupyterlab>`_
@@ -32,23 +32,23 @@ GenomeView visualizes genomic data straight from python. Features include:
 
     * Graphical data such as coverage tracks, wiggle files, etc
 
-The output is suitable for static visualization in screen or print formats. GenomeView is not designed to produce interactive visualizations, although the python interface, through jupyter, provides an easy interface to quickly create new visualizations.
+The output is suitable for static visualization in screen or print formats. ITV is not designed to produce interactive visualizations, although the python interface, through jupyter, provides an easy interface to quickly create new visualizations.
 
 
 Installation
 ============
 
-GenomeView requires python 3.3 or greater. The following shell command should typically suffice for installing the latest release:
+ITV requires python 3.3 or greater. The following shell command should typically suffice for installing the latest release:
 
 .. code-block:: bash
 
-    pip install genomeview
+    pip install integrative_transcriptomics_viewer
 
 Or to install the bleeding edge from github:
 
 .. code-block:: bash
 
-    pip install -U git+https://github.com/nspies/genomeview.git
+    pip install -U git+https://github.com/MethodsDev/integrative_transcriptomics_viewer.git
 
 To display `bigWig <https://genome.ucsc.edu/goldenpath/help/bigWig.html>`_ graphical tracks, the `pyBigWig <https://github.com/deeptools/pyBigWig>`_ python package must also be installed, eg ``pip install pyBigWig``.
 
@@ -68,12 +68,12 @@ To produce the visualization above, a single line of code suffices (in addition 
     start = 224368899
     end =   224398899
 
-    doc = genomeview.visualize_data(dataset_paths, chrom, start, end, reference)
+    doc = integrative_transcriptomics_viewer.visualize_data(dataset_paths, chrom, start, end, reference)
 
 If you are using jupyter notebook or jupyterlab, documents can be displayed simply by placing the name of the document on the last line of a cell by itself and running the cell.
 
-To render the document to file, use the simple :py:func:`genomeview.save()` command::
+To render the document to file, use the simple :py:func:`integrative_transcriptomics_viewer.save()` command::
 
-    genomeview.save(doc, "/path/to/output.svg")   # or .png/.pdf
+    integrative_transcriptomics_viewer.save(doc, "/path/to/output.svg")   # or .png/.pdf
 
 For more details on setting up your own document with fine-grained control over how the tracks are created and visualized, see the :ref:`next section <details>`.
