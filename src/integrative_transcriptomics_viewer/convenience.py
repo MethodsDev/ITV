@@ -428,6 +428,10 @@ class Configuration:
             Define what side reads are supposed to be primed to based on chemistry for binned coverage direction. One of "5p" or "3p". (Default: "5p")
         vertical_layout_reads : bool, optional
             Control if reads are displayed in a vertical manner, meaning a single read per line, or not. (Default: False)
+        max_read_depth : int, optional
+            Control maximum read depth to display to limit view sizes. 2 side by side reads will count as 1 depth. (Default: None)
+        max_read_count : int, optional
+            Control maximum read count to display to limit view sizes.(Default: 100)
         include_secondary : bool, optional
             Control if secondary alignments are drawn. (Default: False)
         quick_consensus : bool, optional

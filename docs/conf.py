@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# genomeview documentation build configuration file, created by
+# ITV documentation build configuration file, created by
 # sphinx-quickstart on Wed Nov 22 15:33:38 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -74,9 +74,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'genomeview'
-copyright = '2017, Noah Spies'
-author = 'Noah Spies'
+project = 'integrative_transcriptomics_viewer'
+copyright = ['2024, Christophe Georegscu', '2017, Noah Spies']
+author = 'Christophe Georgescu, Noah Spies'
 
 
 
@@ -97,8 +97,8 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # built documents.
 #
 # The short X.Y version.
-import genomeview
-version = genomeview.__version__
+import integrative_transcriptomics_viewer
+version = integrative_transcriptomics_viewer.__version__
 
 # The full version, including alpha/beta/rc tags.
 release = ''
@@ -156,7 +156,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'genomeviewdoc'
+htmlhelp_basename = 'itv_doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -183,7 +183,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'genomeview.tex', 'genomeview Documentation',
+    (master_doc, 'integrative_transcriptomics_viewer.tex', 'ITV Documentation',
      'Noah Spies', 'manual'),
 ]
 
@@ -193,7 +193,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'genomeview', 'genomeview Documentation',
+    (master_doc, 'integrative_transcriptomics_viewer', 'ITV Documentation',
      [author], 1)
 ]
 
@@ -204,8 +204,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'genomeview', 'genomeview Documentation',
-     author, 'genomeview', 'One line description of project.',
+    (master_doc, 'integrative_transcriptomics_viewer', 'ITV Documentation',
+     author, 'integrative_transcriptomics_viewer', 'One line description of project.',
      'Miscellaneous'),
 ]
 
