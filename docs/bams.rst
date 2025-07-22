@@ -7,19 +7,19 @@ Visualizing read information in BAM files
 Single-ended read view
 ----------------------
 
-.. autoclass:: genomeview.SingleEndBAMTrack
+.. autoclass:: integrative_transcriptomics_viewer.SingleEndBAMTrack
    :members:
 
 
 Paired-ended read view
 ----------------------
 
-.. autoclass:: genomeview.PairedEndBAMTrack
+.. autoclass:: integrative_transcriptomics_viewer.PairedEndBAMTrack
    :members:
 
 
 Grouping reads by attribute
 ---------------------------
 
-.. autoclass:: genomeview.GroupedBAMTrack
+.. autoclass:: integrative_transcriptomics_viewer.GroupedBAMTrack
    :members:
