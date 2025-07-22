@@ -6,7 +6,7 @@ Adding a coordinate axis
 Axis
 ----
 
-.. autoclass:: genomeview.Axis
+.. autoclass:: integrative_transcriptomics_viewer.Axis
    :members:
 
-.. autofunction:: genomeview.get_ticks
+.. autofunction:: integrative_transcriptomics_viewer.get_ticks

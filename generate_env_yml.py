@@ -20,6 +20,8 @@ dependencies:
   - python>=3.9
   - pip
   - git
+  - sphinx-toolbox
+  - sphinx-rtd-theme
   - jupyterlab
   - pysam
   - cython
@@ -33,6 +35,8 @@ dependencies:
   - ipywidgets
   - intervaltree
   - py-open-fonts
+  - ipykernel
+  - samtools
 """
 
 with open("environment.yml", "w") as env_yml_file:

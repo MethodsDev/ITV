@@ -6,8 +6,8 @@ Plotting continuous genomic data
 GraphTrack
 ----------
 
-.. autoclass:: genomeview.GraphTrack
+.. autoclass:: integrative_transcriptomics_viewer.GraphTrack
    :members:
 
-.. autoclass:: genomeview.BigWigTrack
+.. autoclass:: integrative_transcriptomics_viewer.BigWigTrack
    :members:
