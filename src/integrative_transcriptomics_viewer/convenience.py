@@ -378,6 +378,7 @@ class Configuration:
                        max_read_count = 100,
                        include_secondary = False,
                        include_read_fn = None,
+                       read_color_fn = None,
                        quick_consensus = False,
                        row = None, 
                        view_width = None,
@@ -431,6 +432,10 @@ class Configuration:
             Control if reads are displayed in a vertical manner, meaning a single read per line, or not. (Default: False)
         include_secondary : bool, optional
             Control if secondary alignments are drawn. (Default: False)
+        include_read_fn : typing.Callable[[:class:`~pysam.AlignedSegment`], bool], optional
+            Function to filter reads to include in the view and coverage. Takes as input a read and returns a boolean.
+        read_color_fn : typing.Callable[[:class:`~itv.intervaltrack.Interval`], str], optional
+            Function to decide the base color of a read. Takes as input the information about the read in an interval format (object contains the fields chrom, start, end, id, label, strand) and returns a color code string in the format "#FFFFFF". If not provided, uses the default per strand coloring.
         quick_consensus : bool, optional
             Control if quick consensus (hide SNPs that have a frequency lower than 0.2) mode is used. Slows plotting. (Default: False)
         row : :class:`~itv.ViewRow`, optional
@@ -518,6 +523,8 @@ class Configuration:
                 bam_track.vertical_layout = vertical_layout_reads
                 bam_track.strand_specific = strand_specific_bam
                 bam_track.include_read_fn = include_read_fn
+                if read_color_fn is not None:
+                    bam_track.color_fn = read_color_fn
                 gene_view.add_track(bam_track)
 
         if view_width:
