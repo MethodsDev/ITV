@@ -947,7 +947,8 @@ class Configuration:
 
         return exons_list
 
-    def plot_exons_helper_make_doc(intervals,
+    def plot_exons_helper_make_doc(self,
+                                   intervals,
                                    view_width = 1600,
                                    N_per_row=99999,
                                    **kwargs):
