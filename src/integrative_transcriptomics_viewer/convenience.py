@@ -922,16 +922,17 @@ class Configuration:
         return widgets.VBox(all_widgets)
 
 
-    def plot_exons_helper(self,
-                          feature,
-                          merge_exons = True,
-                          **kwargs):
+    def plot_exons_helper_get_info(self,
+                                   feature,
+                                   merge_exons = True,
+                                   **kwargs):
 
         (feature_id, feature_type) = self.get_feature_info(feature)
         exons_list = None
 
         if feature_type == "exon":
-            return self.plot_feature(feature_id, **kwargs)
+            # return self.plot_feature(feature_id, **kwargs)
+            return [self.id_to_coordinates[feature_id]]
         elif feature_type == "transcript":
             exons_list = sorted(self.transcript_to_exons[feature_id])
         elif feature_type == "gene":
@@ -945,6 +946,15 @@ class Configuration:
             raise TypeError("Error, could not find exons for feature\nfeature_id = ", feature_id, " ; feature_type = ", feature_type)
 
         return exons_list
+
+    def plot_exons_helper_make_doc(exons_list,
+                                   view_width = 1600,
+                                   N_per_row=99999,
+                                   **kwargs):
+        doc = itv.Document(view_width)
+        for i in range(0, len(exons_list), N_per_row):
+           self.make_intervals_row_through_virtual(doc, exons_list[i:i+N_per_row], **kwargs)
+        return doc
 
 
     def plot_exons_slices(self, 
@@ -1078,24 +1088,28 @@ class Configuration:
         A new Document where only the windows of the exons of the provided feature are displayed. : :py:class:`integrative_transcriptomics_viewer.Document`
         """
 
-        (feature_id, feature_type) = self.get_feature_info(feature)
-        exons_list = None
+        # (feature_id, feature_type) = self.get_feature_info(feature)
+        # exons_list = None
 
-        if feature_type == "exon":
-            return self.plot_feature(feature_id, **kwargs)
-        elif feature_type == "transcript":
-            exons_list = sorted(self.transcript_to_exons[feature_id])
-        elif feature_type == "gene":
-            if merge_exons:
-                tmp_exons = self.gene_to_exons[feature_id].copy()
-                tmp_exons.merge_overlaps(data_reducer = interval_data_reduce)
-                exons_list = sorted(tmp_exons)
-            else:
-                exons_list = sorted(self.gene_to_exons[feature_id])
-        else:
-            print("Error, could not find exons for feature")
-            print("feature_id = ", feature_id, " ; feature_type = ", feature_type)
-            return
+        # if feature_type == "exon":
+        #     return self.plot_feature(feature_id, **kwargs)
+        # elif feature_type == "transcript":
+        #     exons_list = sorted(self.transcript_to_exons[feature_id])
+        # elif feature_type == "gene":
+        #     if merge_exons:
+        #         tmp_exons = self.gene_to_exons[feature_id].copy()
+        #         tmp_exons.merge_overlaps(data_reducer = interval_data_reduce)
+        #         exons_list = sorted(tmp_exons)
+        #     else:
+        #         exons_list = sorted(self.gene_to_exons[feature_id])
+        # else:
+        #     print("Error, could not find exons for feature")
+        #     print("feature_id = ", feature_id, " ; feature_type = ", feature_type)
+        #     return
+
+       exons_list = self.plot_exons_helper_get_info(feature = feature,
+                                                    merge_exons = merge_exons,
+                                                    **kwargs)
 
         if as_widget:
             all_views = []
@@ -1445,9 +1459,10 @@ class Configuration:
     # custom bed dict accepts a dict with the same keys are bams_dict only
     def organize_tab_section(self,
                              bams_dict,
-                             interval,
+                             intervals, #  []
                              tab_name,
                              tab_id,
+                             # plotting_fn = "plot_interval",
                              custom_bed_dict = None,
                              with_bed = True,
                              with_coverage = True,
@@ -1491,15 +1506,33 @@ class Configuration:
         else:
             bed_config.update_bed(self.bed_annotation)
 
-        shared_static_svg = bed_config.plot_interval(bams_dict={},
-                                                    interval = interval,
-                                                    with_bed = with_bed,
-                                                    with_reads = False,
-                                                    with_coverage = False,
-                                                    add_track_label = False,
-                                                    **kwargs
-                                                    )._repr_svg__()
-        
+
+        if len(intervals) == 1:
+            plot_fn = getattr(type(self), "plot_interval")
+        else:
+            plot_fn = getattr(type(self), "plot_exons_helper_make_doc")
+
+        # shared_static_svg = bed_config.plot_interval(bams_dict={},
+
+        args = dict(bams_dict = {},
+                    interval = interval,
+                    with_bed = with_bed,
+                    with_reads = False,
+                    with_coverage = False,
+                    add_track_label = False
+                    )
+        shared_static_svg = plot_fn(bed_config, *args, **kwargs)._repr_svg__()
+
+        # else:
+        #     shared_static_svg = bed_config.plot_exons_helper_make_doc(bams_dict={},
+        #                                                               exons_list=intervals,
+        #                                                               with_bed = with_bed,
+        #                                                               with_reads = False,
+        #                                                               with_coverage = False,
+        #                                                               add_track_label = False,
+        #                                                               **kwargs
+        #                                                               )._repr_svg__()
+
         tab_sections = []
         for key, bam in bams_dict.items():
             if bam is None:
@@ -1510,40 +1543,111 @@ class Configuration:
             resizable_svg = ""
             if custom_bed_dict is not None and key in custom_bed_dict:
                 bed_config.update_bed(custom_bed_dict[key])
-                static_svg += bed_config.plot_interval(bams_dict={},
-                                                       interval = interval,
-                                                       with_bed = with_bed,
-                                                       with_reads = False,
-                                                       with_coverage = False,
-                                                       add_track_label = False,
-                                                       **kwargs
-                                                      )._repr_svg__() + "</br>"
+                args = dict(bams_dict={},
+                            interval = interval,
+                            with_bed = with_bed,
+                            with_reads = False,
+                            with_coverage = False,
+                            add_track_label = False
+                            )
+
+                static_svg += plot_fn(bed_config, *args, **kwargs)._repr_svg__() + "</br>"
+
+                # if len(intervals) == 1:
+                #     static_svg += bed_config.plot_interval(bams_dict={},
+                #                                            interval = interval,
+                #                                            with_bed = with_bed,
+                #                                            with_reads = False,
+                #                                            with_coverage = False,
+                #                                            add_track_label = False,
+                #                                            **kwargs
+                #                                           )._repr_svg__() + "</br>"
+                # else:
+                #     static_svg += bed_config.plot_exons_helper_make_doc(bams_dict={},
+                #                                                         interval = interval,
+                #                                                         with_bed = with_bed,
+                #                                                         with_reads = False,
+                #                                                         with_coverage = False,
+                #                                                         add_track_label = False,
+                #                                                         **kwargs
+                #                                                        )._repr_svg__() + "</br>"
 
             if with_coverage:
-                static_svg += self.plot_interval(bams_dict = {key: bam},
-                                                 interval = interval,
-                                                 with_reads = False,
-                                                 with_coverage = True,
-                                                 with_axis = len(bams_dict) > 1,
-                                                 with_bed = False,
-                                                 add_track_label = False,
-                                                 fill_coverage = fill_coverage,
-                                                 coverage_bin_size = coverage_bin_size,
-                                                 **kwargs
-                                                )._repr_svg__() + "</br>"
+                args = dict(bams_dict = {key: bam},
+                            interval = interval,
+                            with_reads = False,
+                            with_coverage = True,
+                            with_axis = len(bams_dict) > 1,
+                            with_bed = False,
+                            add_track_label = False,
+                            fill_coverage = fill_coverage,
+                            coverage_bin_size = coverage_bin_size
+                            )
+
+                static_svg += plot_fn(self, *args, **kwargs)._repr_svg__() + "</br>"
+
+                # if len(intervals) == 1:
+                #     static_svg += self.plot_interval(bams_dict = {key: bam},
+                #                                      interval = interval,
+                #                                      with_reads = False,
+                #                                      with_coverage = True,
+                #                                      with_axis = len(bams_dict) > 1,
+                #                                      with_bed = False,
+                #                                      add_track_label = False,
+                #                                      fill_coverage = fill_coverage,
+                #                                      coverage_bin_size = coverage_bin_size,
+                #                                      **kwargs
+                #                                     )._repr_svg__() + "</br>"
+                # else:
+                #     static_svg += self.plot_exons_helper_make_doc(bams_dict = {key: bam},
+                #                                                   interval = interval,
+                #                                                   with_reads = False,
+                #                                                   with_coverage = True,
+                #                                                   with_axis = len(bams_dict) > 1,
+                #                                                   with_bed = False,
+                #                                                   add_track_label = False,
+                #                                                   fill_coverage = fill_coverage,
+                #                                                   coverage_bin_size = coverage_bin_size,
+                #                                                   **kwargs
+                #                                                  )._repr_svg__() + "</br>"
 
             if with_reads:
-                resizable_svg += self.plot_interval(bams_dict = {key: bam},
-                                                    interval = interval,
-                                                    with_reads = with_reads,
-                                                    with_coverage = False,
-                                                    with_axis = False,
-                                                    with_bed = False,
-                                                    add_track_label = False,
-                                                    add_reads_label = False,
-                                                    vertical_layout_reads = True,
-                                                    **kwargs
-                                                )._repr_svg__() + "</br>"
+                args = dict(bams_dict = {key: bam},
+                            interval = interval,
+                            with_reads = with_reads,
+                            with_coverage = False,
+                            with_axis = False,
+                            with_bed = False,
+                            add_track_label = False,
+                            add_reads_label = False,
+                            vertical_layout_reads = True
+                            )
+                static_svg += plot_fn(self, *args, **kwargs)._repr_svg__() + "</br>"
+
+                # if len(intervals) == 1:
+                #     resizable_svg += self.plot_interval(bams_dict = {key: bam},
+                #                                         interval = interval,
+                #                                         with_reads = with_reads,
+                #                                         with_coverage = False,
+                #                                         with_axis = False,
+                #                                         with_bed = False,
+                #                                         add_track_label = False,
+                #                                         add_reads_label = False,
+                #                                         vertical_layout_reads = True,
+                #                                         **kwargs
+                #                                     )._repr_svg__() + "</br>"
+                # else:
+                #     resizable_svg += self.plot_exons_helper_make_doc(bams_dict = {key: bam},
+                #                                                      interval = interval,
+                #                                                      with_reads = with_reads,
+                #                                                      with_coverage = False,
+                #                                                      with_axis = False,
+                #                                                      with_bed = False,
+                #                                                      add_track_label = False,
+                #                                                      add_reads_label = False,
+                #                                                      vertical_layout_reads = True,
+                #                                                      **kwargs
+                #                                                  )._repr_svg__() + "</br>"
 
             tab_sections.append({
                 'unique_id': f"{tab_id}_{key}",
@@ -1562,6 +1666,7 @@ class Configuration:
 
     def organize_tabs_by_feature(self,
                                  bams_dict_dict,
+                                 plot_type = "plot_feature",
                                  custom_bed_dict_dict = None,
                                  tab_title_fn = None,  # function that takes a feature_name/id or tuple(feature_id, feature_type) as input
                                  **kwargs):
@@ -1591,13 +1696,23 @@ class Configuration:
         if tab_title_fn is None:  # workaround because can't set a self.method as default parameter
             tab_title_fn = self.get_gene_tab_title
 
+        try:
+            plot_fn = getattr(self, plot_type)
+        except AttributeError:
+            raise ValueError(f"Unknown plot name: {plot_type!r}")
+        if not callable(plot_fn):
+            raise ValueError(f"{plot_type!r} exists but is not callable")
+
         tabs = []
         for feature, bams_dict in bams_dict_dict.items():
             #feature_name = str(feature)
             # print(feature)
             # (feature_id, feature_type) = self.get_feature_info(feature_name)
             # interval = self.id_to_coordinates[feature_id]
-            interval = self.get_interval_from_feature(feature)
+            if plot_type == "plot_feature" or plot_type == "plot_interval":
+                intervals = [self.get_interval_from_feature(feature)]
+            elif plot_type == "plot_exons":
+                intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
 
             custom_bed_dict = None
             if custom_bed_dict_dict is not None and feature in custom_bed_dict_dict:
@@ -1607,7 +1722,7 @@ class Configuration:
             tab_id = tab_name + "_" + str(time.time())
 
             tabs.append(self.organize_tab_section(bams_dict = bams_dict,
-                                                  interval = interval, 
+                                                  intervals = intervals, 
                                                   tab_name = tab_name,
                                                   tab_id = tab_id,
                                                   custom_bed_dict = custom_bed_dict,
@@ -1618,7 +1733,7 @@ class Configuration:
 
     def organize_tabs_by_classification(self,
                                         bams_dict_dict,
-                                        interval,
+                                        intervals,
                                         custom_bed_dict_dict = None,
                                         tab_title_fn = None,  # function that takes a feature_name/id or tuple(feature_id, feature_type) as input
                                         **kwargs):
@@ -1658,7 +1773,7 @@ class Configuration:
             tab_name = tab_title_fn(classification)
             tab_id = tab_name + "_" + str(time.time())
             tabs.append(self.organize_tab_section(bams_dict = bams_dict,
-                                                  interval = interval, 
+                                                  intervals = intervals, 
                                                   tab_name = tab_name,
                                                   tab_id = tab_id,
                                                   custom_bed_dict = custom_bed_dict,
@@ -1671,6 +1786,7 @@ class Configuration:
     def plot_by_features_as_tab(self,
                                 features_list,
                                 bams_dict,
+                                plot_type = "plot_feature",
                                 page_title = "Plot by feature", # and split by barcode whitelist category if provided
                                 cellbarcode_whitelist = None,
                                 cellbarcode_from = itv.StandardCellBarcode(),
@@ -1707,13 +1823,18 @@ class Configuration:
 
             if cellbarcode_from is not None and cellbarcode_whitelist is not None:
 
-                interval = self.get_interval_from_feature(feature)
+                # intervals = self.get_interval_from_feature(feature)  # use full gene even if plotting exons here, to not miss reads
+                if plot_type == "plot_feature" or plot_type == "plot_interval":
+                    intervals = [self.get_interval_from_feature(feature)]
+                elif plot_type == "plot_exons":
+                    intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+
                 for bam_name, bam_file in bams_dict.items():
 
                     #for bam_name, bam_file in bams_dict.items():
                     virtual_bams_dict[feature].update(itv.split_bam_by_cellbarcode_whitelist(bam_name,
                                                                                              bam_file,
-                                                                                             interval,
+                                                                                             intervals,
                                                                                              cellbarcode_whitelist = cellbarcode_whitelist,
                                                                                              cellbarcode_from = cellbarcode_from))
             else:
@@ -1876,6 +1997,7 @@ class Configuration:
                                        feature,
                                        classification_from,
                                        annotation_matching,
+                                       plot_type = "plot_feature",
                                        page_title = "Split by Classification",
                                        add_all_tab = True,
                                        padding_perc = 0.1,
@@ -1909,8 +2031,16 @@ class Configuration:
         # if feature_type != "gene":
         #     print("feature provided is not a gene")
         #     return -1
+        intervals = None  # for region(s) to plot
+        interval = None # for region to get reads from
 
-        interval = self.get_interval_from_feature((feature_id, feature_type))
+        if plot_type == "plot_feature" or plot_type == "plot_interval":
+            intervals = [self.get_interval_from_feature(feature)]
+            interval = intervals[0]
+        elif plot_type == "plot_exons":
+            intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+            interval = self.get_interval_from_feature((feature_id, feature_type))
+
 
         start, end = get_padded_coordinates(start = interval.begin, end = interval.end, padding_perc = padding_perc)
         interval = Interval(start, end, interval.data)
@@ -1944,7 +2074,7 @@ class Configuration:
 
 
         tabs = self.organize_tabs_by_classification(bams_dict_dict = virtual_bams_dict_dict,
-                                                    interval = interval,
+                                                    intervals = intervals,
                                                     custom_bed_dict_dict = virtual_beds_dict_dict,
                                                     **kwargs)
 
