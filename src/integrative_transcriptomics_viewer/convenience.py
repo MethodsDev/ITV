@@ -1509,13 +1509,14 @@ class Configuration:
 
         if len(intervals) == 1:
             plot_fn = getattr(type(self), "plot_interval")
+            intervals = intervals[0]  # plot_interval takes an Interval not a list of
         else:
             plot_fn = getattr(type(self), "plot_exons_helper_make_doc")
 
         # shared_static_svg = bed_config.plot_interval(bams_dict={},
 
         args = dict(bams_dict = {},
-                    interval = interval,
+                    intervals = intervals,
                     with_bed = with_bed,
                     with_reads = False,
                     with_coverage = False,
@@ -1544,7 +1545,7 @@ class Configuration:
             if custom_bed_dict is not None and key in custom_bed_dict:
                 bed_config.update_bed(custom_bed_dict[key])
                 args = dict(bams_dict={},
-                            interval = interval,
+                            intervals = intervals,
                             with_bed = with_bed,
                             with_reads = False,
                             with_coverage = False,
@@ -1574,7 +1575,7 @@ class Configuration:
 
             if with_coverage:
                 args = dict(bams_dict = {key: bam},
-                            interval = interval,
+                            intervals = intervals,
                             with_reads = False,
                             with_coverage = True,
                             with_axis = len(bams_dict) > 1,
@@ -1613,7 +1614,7 @@ class Configuration:
 
             if with_reads:
                 args = dict(bams_dict = {key: bam},
-                            interval = interval,
+                            intervals = intervals,
                             with_reads = with_reads,
                             with_coverage = False,
                             with_axis = False,
