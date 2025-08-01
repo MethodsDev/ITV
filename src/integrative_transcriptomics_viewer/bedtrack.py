@@ -100,19 +100,19 @@ def bed_fetch(path, chrom, start, end, field_defs=None):
         pass
 
     try:
+        yield from fetch_from_plainbed(path, chrom, start, end, field_defs=field_defs)
+        return
+    except:
+        raise
+        pass
+
+    try:
         yield from fetch_from_bigbed(path, chrom, start, end, field_defs=field_defs)
         return
     except ImportError:
         logging.warn("Unable to import pyBigWig")
     except:
         # raise
-        pass
-
-    try:
-        yield from fetch_from_plainbed(path, chrom, start, end, field_defs=field_defs)
-        return
-    except:
-        raise
         pass
 
     raise NotImplementedError("Not sure how to handle this file: {}".format(path))
