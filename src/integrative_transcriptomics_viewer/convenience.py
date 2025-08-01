@@ -1107,9 +1107,9 @@ class Configuration:
         #     print("feature_id = ", feature_id, " ; feature_type = ", feature_type)
         #     return
 
-       exons_list = self.plot_exons_helper_get_info(feature = feature,
-                                                    merge_exons = merge_exons,
-                                                    **kwargs)
+        exons_list = self.plot_exons_helper_get_info(feature = feature,
+                                                     merge_exons = merge_exons,
+                                                     **kwargs)
 
         if as_widget:
             all_views = []
