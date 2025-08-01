@@ -1248,6 +1248,8 @@ class Configuration:
             anything that can be passed to :meth:`build_view_row()`
         """
 
+        kwargs.pop("vertical_layout_reads", None)  # remove option if provided because it is enforced to True in this mode
+
         if row is None:
             row = itv.ViewRow("row")
 
