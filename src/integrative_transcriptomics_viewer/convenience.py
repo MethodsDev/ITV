@@ -947,13 +947,13 @@ class Configuration:
 
         return exons_list
 
-    def plot_exons_helper_make_doc(exons_list,
+    def plot_exons_helper_make_doc(intervals,
                                    view_width = 1600,
                                    N_per_row=99999,
                                    **kwargs):
         doc = itv.Document(view_width)
-        for i in range(0, len(exons_list), N_per_row):
-           self.make_intervals_row_through_virtual(doc, exons_list[i:i+N_per_row], **kwargs)
+        for i in range(0, len(intervals), N_per_row):
+           self.make_intervals_row_through_virtual(doc, intervals[i:i+N_per_row], **kwargs)
         return doc
 
 
@@ -1459,10 +1459,9 @@ class Configuration:
     # custom bed dict accepts a dict with the same keys are bams_dict only
     def organize_tab_section(self,
                              bams_dict,
-                             intervals, #  []
+                             intervals,
                              tab_name,
                              tab_id,
-                             # plotting_fn = "plot_interval",
                              custom_bed_dict = None,
                              with_bed = True,
                              with_coverage = True,
@@ -1509,20 +1508,28 @@ class Configuration:
 
         if len(intervals) == 1:
             plot_fn = getattr(type(self), "plot_interval")
-            intervals = intervals[0]  # plot_interval takes an Interval not a list of
+            # intervals = intervals[0]  # plot_interval takes an Interval not a list of
         else:
             plot_fn = getattr(type(self), "plot_exons_helper_make_doc")
 
         # shared_static_svg = bed_config.plot_interval(bams_dict={},
 
-        args = dict(bams_dict = {},
-                    intervals = intervals,
-                    with_bed = with_bed,
-                    with_reads = False,
-                    with_coverage = False,
-                    add_track_label = False
-                    )
-        shared_static_svg = plot_fn(bed_config, *args, **kwargs)._repr_svg__()
+        # set interval(s) once for all subsequent calls
+        kwargs["interval"] = intervals[0]
+        kwargs["intervals"] = intervals
+
+        new_kwargs = dict(
+            bams_dict = {},
+            # interval = intervals[0],
+            # intervals = intervals,
+            with_bed = with_bed,
+            with_reads = False,
+            with_coverage = False,
+            add_track_label = False
+        )
+        fn_kwargs = {**new_kwargs, **kwargs}
+
+        shared_static_svg = plot_fn(bed_config, **fn_kwargs)._repr_svg__()
 
         # else:
         #     shared_static_svg = bed_config.plot_exons_helper_make_doc(bams_dict={},
@@ -1544,15 +1551,17 @@ class Configuration:
             resizable_svg = ""
             if custom_bed_dict is not None and key in custom_bed_dict:
                 bed_config.update_bed(custom_bed_dict[key])
-                args = dict(bams_dict={},
-                            intervals = intervals,
-                            with_bed = with_bed,
-                            with_reads = False,
-                            with_coverage = False,
-                            add_track_label = False
-                            )
+                new_kwargs = dict(
+                    bams_dict={},
+                    # intervals = intervals,
+                    with_bed = with_bed,
+                    with_reads = False,
+                    with_coverage = False,
+                    add_track_label = False
+                )
+                fn_kwargs = {**new_kwargs, **kwargs}
 
-                static_svg += plot_fn(bed_config, *args, **kwargs)._repr_svg__() + "</br>"
+                static_svg += plot_fn(bed_config, **fn_kwargs)._repr_svg__() + "</br>"
 
                 # if len(intervals) == 1:
                 #     static_svg += bed_config.plot_interval(bams_dict={},
@@ -1574,18 +1583,20 @@ class Configuration:
                 #                                                        )._repr_svg__() + "</br>"
 
             if with_coverage:
-                args = dict(bams_dict = {key: bam},
-                            intervals = intervals,
-                            with_reads = False,
-                            with_coverage = True,
-                            with_axis = len(bams_dict) > 1,
-                            with_bed = False,
-                            add_track_label = False,
-                            fill_coverage = fill_coverage,
-                            coverage_bin_size = coverage_bin_size
-                            )
+                new_kwargs = dict(
+                    bams_dict = {key: bam},
+                    intervals = intervals,
+                    with_reads = False,
+                    with_coverage = True,
+                    with_axis = len(bams_dict) > 1,
+                    with_bed = False,
+                    add_track_label = False,
+                    fill_coverage = fill_coverage,
+                    coverage_bin_size = coverage_bin_size
+                )
+                fn_kwargs = {**new_kwargs, **kwargs}
 
-                static_svg += plot_fn(self, *args, **kwargs)._repr_svg__() + "</br>"
+                static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
 
                 # if len(intervals) == 1:
                 #     static_svg += self.plot_interval(bams_dict = {key: bam},
@@ -1613,17 +1624,20 @@ class Configuration:
                 #                                                  )._repr_svg__() + "</br>"
 
             if with_reads:
-                args = dict(bams_dict = {key: bam},
-                            intervals = intervals,
-                            with_reads = with_reads,
-                            with_coverage = False,
-                            with_axis = False,
-                            with_bed = False,
-                            add_track_label = False,
-                            add_reads_label = False,
-                            vertical_layout_reads = True
-                            )
-                static_svg += plot_fn(self, *args, **kwargs)._repr_svg__() + "</br>"
+                new_kwargs = dict(
+                    bams_dict = {key: bam},
+                    intervals = intervals,
+                    with_reads = with_reads,
+                    with_coverage = False,
+                    with_axis = False,
+                    with_bed = False,
+                    add_track_label = False,
+                    add_reads_label = False,
+                    vertical_layout_reads = True
+                )
+                fn_kwargs = {**new_kwargs, **kwargs}
+
+                static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
 
                 # if len(intervals) == 1:
                 #     resizable_svg += self.plot_interval(bams_dict = {key: bam},
