@@ -716,6 +716,9 @@ class Configuration:
         elif feature in self.id_to_coordinates:
             feature_id = feature
             feature_type = "exon"
+
+        if feature_id is None:
+            raise ValueError(f"Could not find information for feature {feature} in the current configuration index.")
         
         return(feature_id, feature_type)
 
