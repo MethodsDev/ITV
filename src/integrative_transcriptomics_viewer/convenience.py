@@ -1221,6 +1221,7 @@ class Configuration:
                                            add_track_label = "auto",
                                            add_reads_label = "auto",
                                            add_coverage_label = "auto",
+                                           with_reads = True,
                                            with_coverage = True,
                                            max_read_depth = 100,
                                            max_read_count = None,
@@ -1279,49 +1280,52 @@ class Configuration:
         max_coverage_dict = {}
         virtual_bams_dict = {}
         bam_track_to_series = {}
-        for key, value in bams_dict.items():
+        if with_coverage or with_reads:
+            for key, value in bams_dict.items():
 
-            all_reads_for_coverage = set()
+                all_reads_for_coverage = set()
 
-            bam_refs = None
-            opener_fn = get_bam_opener(value)
-            with opener_fn(value) as bam:
-                bam_refs = bam.references
-                virtual_bam = itv.bamtrack.VirtualBAM([], bam_refs)
-                virtual_bam.dumb_fetch = True
-                # bam_track.quick_consensus = False;
-                
-                for read in bam.fetch(intervals_list[0].chrom, left_bound, right_bound):
-                    if not include_secondary and read.is_secondary:
-                        continue
-                    # add check that it does overlap with intervals_list at least somewhere
-                    virtual_bam.reads.append(read)
+                bam_refs = None
+                opener_fn = get_bam_opener(value)
+                with opener_fn(value) as bam:
+                    bam_refs = bam.references
+                    virtual_bam = itv.bamtrack.VirtualBAM([], bam_refs)
+                    virtual_bam.dumb_fetch = True
+                    # bam_track.quick_consensus = False;
+                    
+                    for read in bam.fetch(intervals_list[0].chrom, left_bound, right_bound):
+                        if not include_secondary and read.is_secondary:
+                            continue
+                        # add check that it does overlap with intervals_list at least somewhere
+                        virtual_bam.reads.append(read)
 
-                # in plot_exons, always using vertical_layout=True, so both are equivalent
-                if max_read_count:
-                    virtual_bam.sample(max_read_count)
-                elif max_read_depth:
-                    virtual_bam.sample(max_read_depth)
+                    if with_reads:
+                        # in plot_exons, always using vertical_layout=True, so both are equivalent
+                        if max_read_count:
+                            virtual_bam.sample(max_read_count)
+                        elif max_read_depth:
+                            virtual_bam.sample(max_read_depth)
 
-                virtual_bams_dict[key] = virtual_bam
+                    virtual_bams_dict[key] = virtual_bam
 
-            tmp_view = itv.GenomeView(intervals_list[0].chrom, left_bound, right_bound, intervals_list[0].strand)
-            coverage_track_series = itv.BAMCoverageTrack(value, opener_fn=opener_fn)
-            if "priming_orientation" in kwargs:
-                coverage_track_series.priming_orientation = kwargs["priming_orientation"]
-            if "coverage_bin_size" in kwargs:
-                coverage_track_series.bin_size = kwargs["coverage_bin_size"]
-            if "coverage_peak_min_distance" in kwargs:
-                coverage_track_series.min_dist = kwargs["coverage_peak_min_distance"]
-            if "coverage_tag" in kwargs:
-                coverage_track_series.tag = kwargs["coverage_tag"]
-            if "coverage_tag_fn" in kwargs:
-                coverage_track_series.tag_fn = kwargs["coverage_tag_fn"]
-            if "coverage_by_strand" in kwargs:
-                coverage_track_series.stranded_coverage = kwargs["coverage_by_strand"]
-            coverage_track_series.layout(tmp_view.scale)
-            bam_track_to_series[virtual_bam] = coverage_track_series.series
-            max_coverage_dict[key] = coverage_track_series.max_y
+                if with_coverage:
+                    tmp_view = itv.GenomeView(intervals_list[0].chrom, left_bound, right_bound, intervals_list[0].strand)
+                    coverage_track_series = itv.BAMCoverageTrack(value, opener_fn=opener_fn)
+                    if "priming_orientation" in kwargs:
+                        coverage_track_series.priming_orientation = kwargs["priming_orientation"]
+                    if "coverage_bin_size" in kwargs:
+                        coverage_track_series.bin_size = kwargs["coverage_bin_size"]
+                    if "coverage_peak_min_distance" in kwargs:
+                        coverage_track_series.min_dist = kwargs["coverage_peak_min_distance"]
+                    if "coverage_tag" in kwargs:
+                        coverage_track_series.tag = kwargs["coverage_tag"]
+                    if "coverage_tag_fn" in kwargs:
+                        coverage_track_series.tag_fn = kwargs["coverage_tag_fn"]
+                    if "coverage_by_strand" in kwargs:
+                        coverage_track_series.stranded_coverage = kwargs["coverage_by_strand"]
+                    coverage_track_series.layout(tmp_view.scale)
+                    bam_track_to_series[virtual_bam] = coverage_track_series.series
+                    max_coverage_dict[key] = coverage_track_series.max_y
 
 
         bed_config = self  # default, if not with_bed_labels, use the original since not modifying it
@@ -1384,7 +1388,7 @@ class Configuration:
             new_bed_labels = False
 
 
-        if bams_dict and shared_max_coverage:
+        if with_coverage and bams_dict and shared_max_coverage:
             if type(shared_max_coverage) is bool:  # is True and actually a Boolean rather than an Integer
                 max_coverage_dict = max(max_coverage_dict.values())
             else:
@@ -1405,23 +1409,25 @@ class Configuration:
                 end = end + padding
 
             row = bed_config.build_view_row(start = start, 
-                                                 end = end,
-                                                 chrom = chrom,
-                                                 strand = strand,
-                                                 bams_dict = virtual_bams_dict, 
-                                                 vertical_layout_reads = True,
-                                                 max_read_depth = None,
-                                                 max_read_count = None,
-                                                 padding_perc = padding_perc, 
-                                                 add_track_label = add_track_label,
-                                                 add_reads_label = add_reads_label,
-                                                 add_coverage_label = add_coverage_label,
-                                                 with_bed_label = new_bed_labels,
-                                                 row = row, 
-                                                 view_width = interval_width, 
-                                                 view_margin_y = 0,
-                                                 coverage_track_max_y = max_coverage_dict,
-                                                 **kwargs)
+                                            end = end,
+                                            chrom = chrom,
+                                            strand = strand,
+                                            bams_dict = virtual_bams_dict,
+                                            with_reads = with_reads,
+                                            with_coverage = with_coverage,
+                                            vertical_layout_reads = True,
+                                            max_read_depth = None,
+                                            max_read_count = None,
+                                            padding_perc = padding_perc, 
+                                            add_track_label = add_track_label,
+                                            add_reads_label = add_reads_label,
+                                            add_coverage_label = add_coverage_label,
+                                            with_bed_label = new_bed_labels,
+                                            row = row, 
+                                            view_width = interval_width, 
+                                            view_margin_y = 0,
+                                            coverage_track_max_y = max_coverage_dict,
+                                            **kwargs)
 
 
             if add_track_label:
@@ -1430,11 +1436,12 @@ class Configuration:
             add_reads_label = None
             add_coverage_label = None
 
-            for track in row.views[-1].get_tracks():
-                if isinstance(track, itv.bamtrack.BAMCoverageTrack):
-                    # track.series = bam_path_to_series[track.bam_path]
-                    track.series = bam_track_to_series[track.bam_path]
-                    track.cached_series = True
+            if with_coverage:
+                for track in row.views[-1].get_tracks():
+                    if isinstance(track, itv.bamtrack.BAMCoverageTrack):
+                        # track.series = bam_path_to_series[track.bam_path]
+                        track.series = bam_track_to_series[track.bam_path]
+                        track.cached_series = True
 
         doc.elements.append(row)
         return doc
@@ -1569,34 +1576,49 @@ class Configuration:
 
                 static_svg += plot_fn(bed_config, **fn_kwargs)._repr_svg__() + "</br>"
 
-                # if len(intervals) == 1:
-                #     static_svg += bed_config.plot_interval(bams_dict={},
-                #                                            interval = interval,
-                #                                            with_bed = with_bed,
-                #                                            with_reads = False,
-                #                                            with_coverage = False,
-                #                                            add_track_label = False,
-                #                                            **kwargs
-                #                                           )._repr_svg__() + "</br>"
-                # else:
-                #     static_svg += bed_config.plot_exons_helper_make_doc(bams_dict={},
-                #                                                         interval = interval,
-                #                                                         with_bed = with_bed,
-                #                                                         with_reads = False,
-                #                                                         with_coverage = False,
-                #                                                         add_track_label = False,
-                #                                                         **kwargs
-                #                                                        )._repr_svg__() + "</br>"
+            # if with_coverage:
+            #     new_kwargs = dict(
+            #         bams_dict = {key: bam},
+            #         intervals = intervals,
+            #         with_reads = False,
+            #         with_coverage = True,
+            #         with_axis = len(bams_dict) > 1,
+            #         with_bed = False,
+            #         add_track_label = False,
+            #         fill_coverage = fill_coverage,
+            #         coverage_bin_size = coverage_bin_size
+            #     )
+            #     fn_kwargs = {**new_kwargs, **kwargs}
 
-            if with_coverage:
+            #     static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
+
+            # if with_reads:
+            #     new_kwargs = dict(
+            #         bams_dict = {key: bam},
+            #         intervals = intervals,
+            #         with_reads = with_reads,
+            #         with_coverage = False,
+            #         with_axis = False,
+            #         with_bed = False,
+            #         add_track_label = False,
+            #         add_reads_label = False,
+            #         vertical_layout_reads = True
+            #     )
+            #     fn_kwargs = {**new_kwargs, **kwargs}
+
+            #     static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
+
+            if with_coverage or with_reads:
                 new_kwargs = dict(
                     bams_dict = {key: bam},
                     intervals = intervals,
-                    with_reads = False,
-                    with_coverage = True,
-                    with_axis = len(bams_dict) > 1,
+                    with_reads = with_reads,
+                    with_coverage = with_coverage,
+                    with_axis = False,
                     with_bed = False,
                     add_track_label = False,
+                    add_reads_label = False,
+                    vertical_layout_reads = True,
                     fill_coverage = fill_coverage,
                     coverage_bin_size = coverage_bin_size
                 )
@@ -1604,71 +1626,6 @@ class Configuration:
 
                 static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
 
-                # if len(intervals) == 1:
-                #     static_svg += self.plot_interval(bams_dict = {key: bam},
-                #                                      interval = interval,
-                #                                      with_reads = False,
-                #                                      with_coverage = True,
-                #                                      with_axis = len(bams_dict) > 1,
-                #                                      with_bed = False,
-                #                                      add_track_label = False,
-                #                                      fill_coverage = fill_coverage,
-                #                                      coverage_bin_size = coverage_bin_size,
-                #                                      **kwargs
-                #                                     )._repr_svg__() + "</br>"
-                # else:
-                #     static_svg += self.plot_exons_helper_make_doc(bams_dict = {key: bam},
-                #                                                   interval = interval,
-                #                                                   with_reads = False,
-                #                                                   with_coverage = True,
-                #                                                   with_axis = len(bams_dict) > 1,
-                #                                                   with_bed = False,
-                #                                                   add_track_label = False,
-                #                                                   fill_coverage = fill_coverage,
-                #                                                   coverage_bin_size = coverage_bin_size,
-                #                                                   **kwargs
-                #                                                  )._repr_svg__() + "</br>"
-
-            if with_reads:
-                new_kwargs = dict(
-                    bams_dict = {key: bam},
-                    intervals = intervals,
-                    with_reads = with_reads,
-                    with_coverage = False,
-                    with_axis = False,
-                    with_bed = False,
-                    add_track_label = False,
-                    add_reads_label = False,
-                    vertical_layout_reads = True
-                )
-                fn_kwargs = {**new_kwargs, **kwargs}
-
-                static_svg += plot_fn(self, **fn_kwargs)._repr_svg__() + "</br>"
-
-                # if len(intervals) == 1:
-                #     resizable_svg += self.plot_interval(bams_dict = {key: bam},
-                #                                         interval = interval,
-                #                                         with_reads = with_reads,
-                #                                         with_coverage = False,
-                #                                         with_axis = False,
-                #                                         with_bed = False,
-                #                                         add_track_label = False,
-                #                                         add_reads_label = False,
-                #                                         vertical_layout_reads = True,
-                #                                         **kwargs
-                #                                     )._repr_svg__() + "</br>"
-                # else:
-                #     resizable_svg += self.plot_exons_helper_make_doc(bams_dict = {key: bam},
-                #                                                      interval = interval,
-                #                                                      with_reads = with_reads,
-                #                                                      with_coverage = False,
-                #                                                      with_axis = False,
-                #                                                      with_bed = False,
-                #                                                      add_track_label = False,
-                #                                                      add_reads_label = False,
-                #                                                      vertical_layout_reads = True,
-                #                                                      **kwargs
-                #                                                  )._repr_svg__() + "</br>"
 
             tab_sections.append({
                 'unique_id': f"{tab_id}_{key}",
@@ -1717,12 +1674,12 @@ class Configuration:
         if tab_title_fn is None:  # workaround because can't set a self.method as default parameter
             tab_title_fn = self.get_gene_tab_title
 
-        try:
-            plot_fn = getattr(self, plot_type)
-        except AttributeError:
-            raise ValueError(f"Unknown plot name: {plot_type!r}")
-        if not callable(plot_fn):
-            raise ValueError(f"{plot_type!r} exists but is not callable")
+        # try:
+        #     plot_fn = getattr(self, plot_type)
+        # except AttributeError:
+        #     raise ValueError(f"Unknown plot name: {plot_type!r}")
+        # if not callable(plot_fn):
+        #     raise ValueError(f"{plot_type!r} exists but is not callable")
 
         tabs = []
         for feature, bams_dict in bams_dict_dict.items():
