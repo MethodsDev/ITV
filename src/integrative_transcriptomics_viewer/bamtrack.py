@@ -183,6 +183,7 @@ class SingleEndBAMTrack(BAMTrack):
 
         self.quick_consensus = True
         self.draw_mismatches = True
+        self.draw_clipping = True
         self.include_secondary = False
 
         self.min_indel_size = 0
@@ -449,11 +450,11 @@ class SingleEndBAMTrack(BAMTrack):
 
                 sequence_position += length
             elif code in [4, 5]: #"HS":
-                if sequence_position == 0:
-                    yield from self._draw_clipping(renderer, length, genome_position, yoffset, "left", interval.strand)
-                else:
-                    yield from self._draw_clipping(renderer, length, genome_position, yoffset, "right", interval.strand)
-
+                if self.draw_clipping:
+                    if sequence_position == 0:
+                        yield from self._draw_clipping(renderer, length, genome_position, yoffset, "left", interval.strand)
+                    else:
+                        yield from self._draw_clipping(renderer, length, genome_position, yoffset, "right", interval.strand)
                 if code == 4:
                     sequence_position += length
             elif code == 7:  # "="
