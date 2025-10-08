@@ -380,6 +380,7 @@ class Configuration:
                        include_read_fn = None,
                        read_color_fn = None,
                        quick_consensus = False,
+                       draw_clipping = True,
                        row = None, 
                        view_width = None,
                        view_margin_y = None,
@@ -524,6 +525,7 @@ class Configuration:
                 bam_track.max_depth = max_read_depth
                 bam_track.max_reads = max_read_count
                 bam_track.quick_consensus = quick_consensus
+                bam_track.draw_clipping = draw_clipping
                 bam_track.vertical_layout = vertical_layout_reads
                 bam_track.strand_specific = strand_specific_bam
                 bam_track.include_read_fn = include_read_fn
