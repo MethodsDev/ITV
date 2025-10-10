@@ -386,6 +386,7 @@ class Configuration:
                        view_margin_y = None,
                        fill_coverage = True,
                        coverage_track_max_y = None,
+                       draw_coverage_y_axis = True,
                        tighter_track = False,
                        **kwargs):
 
@@ -499,6 +500,7 @@ class Configuration:
                 coverage_track.tag = coverage_tag
                 coverage_track.tag_fn = coverage_tag_fn
                 coverage_track.stranded_coverage = coverage_by_strand
+                coverage_track.draw_y_axis = draw_coverage_y_axis
 
                 if fill_coverage:
                     coverage_track.fill_coverage = True
@@ -1232,6 +1234,7 @@ class Configuration:
                                            normalize_interval_width = False,
                                            shared_max_coverage = True,
                                            with_bed_label = True,
+                                           draw_coverage_y_axis_only_once = True,
                                            **kwargs):
         """
         Adds a row to the provided doc for the given intervals such that reads ordering and spacing is consistant across them.
@@ -1396,6 +1399,8 @@ class Configuration:
             else:
                 max_coverage_dict = shared_max_coverage
 
+        draw_coverage_y_axis = True
+
         for interval in intervals_list:
             start = interval.begin
             end = interval.end
@@ -1429,6 +1434,7 @@ class Configuration:
                                             view_width = interval_width, 
                                             view_margin_y = 0,
                                             coverage_track_max_y = max_coverage_dict,
+                                            draw_coverage_y_axis = draw_coverage_y_axis,
                                             **kwargs)
 
 
@@ -1444,6 +1450,8 @@ class Configuration:
                         # track.series = bam_path_to_series[track.bam_path]
                         track.series = bam_track_to_series[track.bam_path]
                         track.cached_series = True
+                if draw_coverage_y_axis_only_once:
+                    draw_coverage_y_axis = False
 
         doc.elements.append(row)
         return doc

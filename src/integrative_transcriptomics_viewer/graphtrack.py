@@ -55,6 +55,7 @@ class GraphTrack(Track):
         self.ymargin = 5
 
         self.fill_coverage = False
+        self.draw_y_axis = True
         
     def add_series(self, x, y, color=None, label=None):
         """
@@ -176,29 +177,30 @@ class GraphTrack(Track):
 
                 yield full_path
 
-        # since the labels are drawn at the top of the ticks, let's make sure the top tick/label is 
-        # more than 12 pixels from the top of the track so it doesn't get clipped
-        # TODO: this ignores the margin, as of now
-        axis_max_y = self.min_y + (self.max_y - self.min_y) * (1-7/self.height)
+        if self.draw_y_axis:
+            # since the labels are drawn at the top of the ticks, let's make sure the top tick/label is 
+            # more than 12 pixels from the top of the track so it doesn't get clipped
+            # TODO: this ignores the margin, as of now
+            axis_max_y = self.min_y + (self.max_y - self.min_y) * (1-7/self.height)
 
-        # ticks = get_ticks(self.min_y, axis_max_y, 4)
-        ticks = numpy.linspace(self.min_y, axis_max_y, 4)
+            # ticks = get_ticks(self.min_y, axis_max_y, 4)
+            ticks = numpy.linspace(self.min_y, axis_max_y, 4)
 
-        yield from renderer.line(1, self.ytopixels(ticks[0]), 1, self.ytopixels(ticks[-1]), 
-                                 **{"stroke-width":2, "stroke":"gray", "stroke-linecap":"square", "shape-rendering":"geometricPrecision"})
-        for tick in ticks:
-            if self.max_y > 1_000:
-                label = "{:.1g}".format(tick)
-            elif self.max_y < 1:
-                label = "{:.1f}".format(tick)
-            else:
-                label = "{:,.0f}".format(tick)
-
-            y = self.ytopixels(tick)
-            yield from renderer.line(1, y, 10, y, 
+            yield from renderer.line(1, self.ytopixels(ticks[0]), 1, self.ytopixels(ticks[-1]), 
                                      **{"stroke-width":2, "stroke":"gray", "stroke-linecap":"square", "shape-rendering":"geometricPrecision"})
-            yield from renderer.text(14, y, label, anchor="start", fill="gray")
-            
+            for tick in ticks:
+                if self.max_y > 1_000:
+                    label = "{:.1g}".format(tick)
+                elif self.max_y < 1:
+                    label = "{:.1f}".format(tick)
+                else:
+                    label = "{:,.0f}".format(tick)
+
+                y = self.ytopixels(tick)
+                yield from renderer.line(1, y, 10, y, 
+                                         **{"stroke-width":2, "stroke":"gray", "stroke-linecap":"square", "shape-rendering":"geometricPrecision"})
+                yield from renderer.text(14, y, label, anchor="start", fill="gray")
+                
         for x in self.render_label(renderer):
             yield x
 
