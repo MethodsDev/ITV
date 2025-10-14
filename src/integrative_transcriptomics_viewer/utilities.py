@@ -5,6 +5,7 @@ import bz2
 import math
 import random
 from collections.abc import MutableMapping, Iterable, Iterator
+from collections import deque
 from itertools import islice
 
 
@@ -87,34 +88,50 @@ def my_hook_compressed(filename, mode):
 
         
 def reservoir_sampling_from_iterable(iterable_to_sample, sample_size, iterable_length):
-    if iterable_length > sample_size:
-        iterable_iter = iterable_to_sample.__iter__()
-        
-        # initial fill of the reservoir
-        reservoir = [(item, i) for i, item in enumerate(islice(iterable_iter, sample_size))]
-        latest_index = sample_size
+    # trivial case
+    if iterable_length <= sample_size:
+        return list(iterable_to_sample)
 
-        i = sample_size
-        n = iterable_length - 1
-        W = math.exp(math.log(random.random()) / sample_size)
-        while i < n:
-            # jump to the next element that will replace another in the reservoir
-            i += math.floor(math.log(random.random()) / math.log(1 - W)) + 1
+    iterable_iter = iter(iterable_to_sample)
+ 
+    # initial fill of the reservoir
+    reservoir = [(item, i) for i, item in enumerate(islice(iterable_iter, sample_size))]
+    assert len(reservoir) == sample_size
+    
+    # i = number of items consumed so far
+    i = sample_size
+    W = math.exp(math.log(random.random()) / sample_size)
 
-            # if we didn't reach the end of the list of stuff to sample yet
-            if i < n:
-                # reservoir[random.randint(0, sample_size - 1)] = iterable_to_sample[i]  # random index between 1 and k, inclusive
-                for _ in range(i - 1 - latest_index):
-                    next(iterable_iter)
-                reservoir[random.randint(0, sample_size - 1)] = (next(iterable_iter), i)  # random index between 1 and k, inclusive
-                latest_index = i
-                W = W * math.exp(math.log(random.random()) / sample_size)
-        
-        # sorting by original index to keep input sorting
-        reservoir = [item for item, _ in sorted(reservoir, key=lambda x: x[1])]
-        return reservoir
-    else:
-        return iterable_to_sample
+    while True:
+        # number of items to skip (≥0)
+        skip = int(math.floor(math.log(random.random()) / math.log(1.0 - W)))
+
+        # stop early if the known length would be exceeded
+        if i + skip >= iterable_length:
+            break
+
+        # fast-forward skip items; deque(..., 0) consumes without keeping memory
+        if skip:
+            deque(islice(iterable_iter, skip), maxlen=0)
+            i += skip
+
+        # take the next item; guard iterator exhaustion
+        try:
+            x = next(iterable_iter)
+        except StopIteration:
+            break
+
+        # x has 0-based index i
+        reservoir[random.randrange(sample_size)] = (x, i)
+        i += 1
+
+        # update jump factor
+        W *= math.exp(math.log(random.random()) / sample_size)
+
+    
+    # sorting by original index to keep input sorting
+    reservoir.sort(key=lambda p: p[1])
+    return [x for x, _ in reservoir]
 
 
 def reservoir_sampling_from_iterator(iterator_to_sample, sample_size, iterator_length):
