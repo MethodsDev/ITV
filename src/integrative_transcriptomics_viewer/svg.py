@@ -196,7 +196,7 @@ class Renderer:
         yield from self.backend.block_arrow(left+self.x, top+self.y, *args, **kwdargs)
 
     def render(self, element):
-        yield "<!-- {} -->".format(element.name)
+        # yield "<!-- {} -->".format(element.name)
         yield from self.backend.start_clipped_group(self.x, self.y, self.width, self.height, self.id)
         # yield self.backend.rect(self.x, self.y, self.width, self.height, fill="blue")
 
