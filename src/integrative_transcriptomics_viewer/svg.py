@@ -81,13 +81,16 @@ class SVG(GraphicsBackend):
         if n is not None:
             arrows = numpy.arange(n) / n
 
+        if arrows is None:
+            return
+
         for arrow in arrows:
             x_arrow = x1+float(x2-x1)*arrow
             y_arrow = y1+float(y2-y1)*arrow
-            yield from self.arrow(x_arrow, y_arrow, direction, filled=filled,
+            yield self.arrow(x_arrow, y_arrow, direction, filled=filled,
                 color=color, scale=arrow_scale, **arrowKwdArgs)
 
-    def arrow(self, x, y, direction, color="black", scale=1.0, filled=True, **kwdargs):
+    def arrow(self, x, y, direction, color="black", scale=1.0, filled=True, **kwdargs) -> str:
         more = _addOptions(kwdargs)
 
         if filled:
@@ -97,32 +100,30 @@ class SVG(GraphicsBackend):
             fill = "fill=\"transparent\""
             close = ""
 
+        path_template = """<path d="M {x0} {y0} L {x1} {y1} L {x2} {y2}{close}" stroke="{color}" """ \
+                         """{fill} xcenter="{xcenter}" {more}/>"""
         if direction == "right":
-            path = """<path d="M {x0} {y0} L {x1} {y1} L {x2} {y2}{close}" stroke="{color}" """ \
-                   """{fill} xcenter="{xcenter}" {more}/>"""
-            a = path.format(
-                x0=(x-2.5*scale), y0=(y-5*scale), 
-                x1=(x+2.5*scale), y1=y, 
+            return path_template.format(
+                x0=(x-2.5*scale), y0=(y-5*scale),
+                x1=(x+2.5*scale), y1=y,
                 x2=(x-2.5*scale), y2=(y+5*scale),
                 close=close,
                 fill=fill,
                 color=color,
                 xcenter=x,
                 more=more)
-        elif direction == "left":
-            path = """<path d="M {x0} {y0} L {x1} {y1} L {x2} {y2}{close}" stroke="{color}" """ \
-                   """{fill} xcenter="{xcenter}" {more}/>"""
-            a = path.format(
-                x0=(x+2.5*scale), y0=(y-5*scale), 
-                x1=(x-2.5*scale), y1=y, 
+        if direction == "left":
+            return path_template.format(
+                x0=(x+2.5*scale), y0=(y-5*scale),
+                x1=(x-2.5*scale), y1=y,
                 x2=(x+2.5*scale), y2=(y+5*scale),
                 close=close,
                 fill=fill,
                 color=color,
                 xcenter=x,
                 more=more)
-        yield a
-        
+        raise ValueError(f"Unsupported arrow direction: {direction}")
+
     def block_arrow(self, left, top, width, height, arrow_width, direction, **kwdargs):
         coords = {"stroke": kwdargs.pop("stroke", "none"), "fill":kwdargs.pop("fill", "black")}
         title_value = kwdargs.pop("title", None)
@@ -190,7 +191,7 @@ class Renderer:
         yield from self.backend.line_with_arrows(x1+self.x, y1+self.y, x2+self.x, y2+self.y, *args, **kwdargs)
 
     def arrow(self, x, y, *args, **kwdargs):
-        yield from self.backend.arrow(x+self.x, y+self.y, *args, **kwdargs)
+        yield self.backend.arrow(x+self.x, y+self.y, *args, **kwdargs)
 
     def block_arrow(self, left, top, *args, **kwdargs):
         yield from self.backend.block_arrow(left+self.x, top+self.y, *args, **kwdargs)

@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Mapping
 import gzip
 import math
 import os
@@ -8,94 +8,99 @@ import ipywidgets as widgets
 import re
 import time
 from functools import partial
+from typing import Optional, Union, Callable, Any, Dict, cast
 
 from intervaltree import Interval, IntervalTree
 
-import integrative_transcriptomics_viewer as itv
+# import integrative_transcriptomics_viewer as itv
 from integrative_transcriptomics_viewer import utilities
-from integrative_transcriptomics_viewer.bam_read_operations import *
+from integrative_transcriptomics_viewer import axis, genomeview, genomesource, track
+from integrative_transcriptomics_viewer import bamtrack, bedtrack
+from integrative_transcriptomics_viewer import cellbarcode
+from integrative_transcriptomics_viewer import templates
+from integrative_transcriptomics_viewer import bam_read_operations
 from integrative_transcriptomics_viewer.utilities import my_hook_compressed
 
 
-def visualize_data(file_paths, chrom, start, end, reference_path=None, 
-                   width=900, axis_on_top=False):
-    """
-    Creates a GenomeView document to display the data in the specified
-    files (eg bam, bed, etc).
+# def visualize_data(file_paths, chrom, start, end, reference_path=None, 
+#                    width=900, axis_on_top=False):
+#     """
+#     Creates a GenomeView document to display the data in the specified
+#     files (eg bam, bed, etc).
 
-    Args:
-        file_paths: this specifies the file paths to be rendered. It must be 
-            either a list/tuple of the paths, or a dictionary mapping 
-            {track_name:path}. (If you are using a python version prior to 3.6, 
-            use collections.ordereddict to ensure the order remains the same.)
-            Currently supports files ending in .bam, .cram, .bed, .bed.gz, 
-            .bigbed, or .bigwig (or .bw). Most of these file types require a
-            separate index file to be present (eg a .bam.bai or a .bed.gz.tbi 
-            file must exist).
-        chrom: chromosome (or contig) to be rendered
-        start: start coordinate of region to be rendered
-        end: end coordinate of region to be rendered
-        reference_path: path to fasta file specifying reference genomic 
-            sequence. This is required in order to display mismatches
-            in bam tracks.
-        width: the pixel width of the document
-        axis_on_top: specifies whether the axis should be added at the bottom
-            (default) or at the top
-    """
-    if reference_path is not None:
-        source = itv.FastaGenomeSource(reference_path)
-    else:
-        source = None
+#     Args:
+#         file_paths: this specifies the file paths to be rendered. It must be 
+#             either a list/tuple of the paths, or a dictionary mapping 
+#             {track_name:path}. (If you are using a python version prior to 3.6, 
+#             use collections.ordereddict to ensure the order remains the same.)
+#             Currently supports files ending in .bam, .cram, .bed, .bed.gz, 
+#             .bigbed, or .bigwig (or .bw). Most of these file types require a
+#             separate index file to be present (eg a .bam.bai or a .bed.gz.tbi 
+#             file must exist).
+#         chrom: chromosome (or contig) to be rendered
+#         start: start coordinate of region to be rendered
+#         end: end coordinate of region to be rendered
+#         reference_path: path to fasta file specifying reference genomic 
+#             sequence. This is required in order to display mismatches
+#             in bam tracks.
+#         width: the pixel width of the document
+#         axis_on_top: specifies whether the axis should be added at the bottom
+#             (default) or at the top
+#     """
+#     if reference_path is not None:
+#         source = genomesource.FastaGenomeSource(reference_path)
+#     else:
+#         source = None
 
-    doc = itv.Document(width)
+#     doc = itv.Document(width)
     
-    view = itv.GenomeView(chrom, start, end, "+", source)
-    doc.add_view(view)
+#     view = itv.GenomeView(chrom, start, end, "+", source)
+#     doc.add_view(view)
 
-    def add_axis():
-        axis_track = itv.Axis("axis")
-        view.add_track(axis_track)
+#     def add_axis():
+#         axis_track = itv.Axis("axis")
+#         view.add_track(axis_track)
 
-    if axis_on_top:
-        add_axis()
+#     if axis_on_top:
+#         add_axis()
 
-    if isinstance(file_paths, collections.abc.Mapping):
-        names = file_paths.keys()
-        file_paths = [file_paths[name] for name in names]
-    else:
-        names = [None] * len(file_paths)
-        file_paths = file_paths
+#     if isinstance(file_paths, Mapping):
+#         names = file_paths.keys()
+#         file_paths = [file_paths[name] for name in names]
+#     else:
+#         names = [None] * len(file_paths)
+#         file_paths = file_paths
         
-    for name, path in zip(names, file_paths):
-        if path.lower().endswith(".bam") or path.lower().endswith(".cram"):
-            if utilities.is_paired_end(path):
-                cur_track = itv.PairedEndBAMTrack(path, name=name)
-            else:
-                cur_track = itv.SingleEndBAMTrack(path, name=name)
-                if utilities.is_long_frag_dataset(path):
-                    cur_track.min_indel_size = 5
+#     for name, path in zip(names, file_paths):
+#         if path.lower().endswith(".bam") or path.lower().endswith(".cram"):
+#             if utilities.is_paired_end(path):
+#                 cur_track = itv.PairedEndBAMTrack(path, name=name)
+#             else:
+#                 cur_track = itv.SingleEndBAMTrack(path, name=name)
+#                 if utilities.is_long_frag_dataset(path):
+#                     cur_track.min_indel_size = 5
 
-        elif path.lower().endswith(".bed") or path.lower().endswith(".bed.gz") or path.lower().endswith(".bigbed") or path.lower().endswith(".bb"):
-            cur_track = itv.BEDTrack(path, name=name)
+#         elif path.lower().endswith(".bed") or path.lower().endswith(".bed.gz") or path.lower().endswith(".bigbed") or path.lower().endswith(".bb"):
+#             cur_track = itv.BEDTrack(path, name=name)
 
-        elif path.lower().endswith(".bigwig") or path.lower().endswith(".bw"):
-            cur_track = itv.BigWigTrack(path, name=name)
+#         elif path.lower().endswith(".bigwig") or path.lower().endswith(".bw"):
+#             cur_track = itv.BigWigTrack(path, name=name)
 
-        else:
-            suffix =  os.path.basename(path)
-            raise ValueError("Unknown file suffix: {}".format(suffix))
+#         else:
+#             suffix =  os.path.basename(path)
+#             raise ValueError("Unknown file suffix: {}".format(suffix))
 
-        view.add_track(cur_track)
+#         view.add_track(cur_track)
 
-    if not axis_on_top:
-        add_axis()
+#     if not axis_on_top:
+#         add_axis()
 
-    return doc
+#     return doc
 
 
 ### newly added wrappers
 
-class TighterSingleEndBAMTrack(itv.SingleEndBAMTrack):
+class TighterSingleEndBAMTrack(bamtrack.SingleEndBAMTrack):
     def __init__(self, *args, **kwdargs):
         super().__init__(*args, **kwdargs)
         self.row_height = 3
@@ -107,14 +112,14 @@ def color_from_bed(interval):
         # return "#{0:02x}{1:02x}{2:02x}".format(int(hex_colors[0]), int(hex_colors[1]), int(hex_colors[2]))
         return "rgb(" + interval.tx.color + ")"
     else:
-        return itv.color_by_strand(interval)
+        return bamtrack.color_by_strand(interval)
 
 
 def make_bed_track(bed, name=None): # , chrom=None, start=None, end=None):
-    if isinstance(bed, itv.VirtualBEDTrack):
+    if isinstance(bed, bedtrack.VirtualBEDTrack):
         bed_track = bed.copy()
     else:
-        bed_track = itv.BEDTrack(bed, name)
+        bed_track = bedtrack.BEDTrack(bed, name)
     return bed_track
 
 
@@ -123,7 +128,7 @@ def make_bed_track(bed, name=None): # , chrom=None, start=None, end=None):
 def interval_chrom(self):
     return self.data[:-1]
 
-Interval.chrom = interval_chrom
+Interval.chrom = interval_chrom  # type: ignore[attr-defined]
 
 @property
 def interval_strand(self):
@@ -134,7 +139,7 @@ def interval_strand(self):
         return False
     return True
 
-Interval.strand = interval_strand
+Interval.strand = interval_strand  # type: ignore[attr-defined]
 
 
 def interval_data_reduce(current_data, new_data):
@@ -170,7 +175,7 @@ class Configuration:
 
     def __init__(self, genome_fasta, bed_annotation, gtf_annotation = None, bed_color_fn=color_from_bed):
         self._fasta = genome_fasta
-        self.genome_fasta = itv.genomesource.FastaGenomeSource(genome_fasta)
+        self.genome_fasta = genomesource.FastaGenomeSource(genome_fasta)
         self.bed_annotation = bed_annotation
         self.bed_color_fn = bed_color_fn
 
@@ -208,14 +213,17 @@ class Configuration:
         # protein_id_regex = re.compile('protein_id "([a-zA-Z0-9\.]+)";')
 
         with my_hook_compressed(gtf_annotation, "r") as gtf_file:
-            for entry in pysam.tabix_iterator(gtf_file, pysam.asGTF()):
+            for entry in pysam.tabix_iterator(gtf_file, pysam.asGTF()):  # type: ignore[arg-type]
                 if entry.feature == "gene":
                     res = gene_id_regex.search(entry.attributes)
                     if res:
                         gene_id = res.group(1)
                     else:
                         print("missing gene_id in a gene entry, skipping entry")
-
+                        continue
+            
+                    if gene_id is None:
+                        continue
 
                     res = gene_name_regex.search(entry.attributes)
                     if res:
@@ -233,7 +241,7 @@ class Configuration:
                     if res:
                         gene_id = res.group(1)
 
-                        if gene_id not in self.id_to_coordinates:
+                        if gene_id not in self.id_to_coordinates and gene_id is not None:
                             self.id_to_coordinates[gene_id] = Interval(entry.start, entry.end, entry.contig + entry.strand)
                             self.gene_to_transcripts[gene_id] = []
                             self.gene_to_exons[gene_id] = IntervalTree()
@@ -244,6 +252,10 @@ class Configuration:
                     else:
                         print("missing transcript_id in a transcript entry, skipping entry:")
                         print(entry)
+                        continue
+
+                    if transcript_id is None:
+                        continue
 
                     self.id_to_coordinates[transcript_id] = Interval(entry.start, entry.end, entry.contig + entry.strand)
                     self.transcript_to_gene[transcript_id] = gene_id
@@ -256,19 +268,21 @@ class Configuration:
                     res = gene_id_regex.search(entry.attributes)
                     if res:
                         gene_id = res.group(1)
-                        self.gene_to_exons[gene_id].add(Interval(entry.start, entry.end, entry.contig + entry.strand))
+                        if gene_id:
+                            self.gene_to_exons[gene_id].add(Interval(entry.start, entry.end, entry.contig + entry.strand))
 
                     transcript_id = None
                     res = transcript_id_regex.search(entry.attributes)
                     if res:
                         transcript_id = res.group(1)
-                        self.transcript_to_exons[transcript_id].add(Interval(entry.start, entry.end, entry.contig + entry.strand))
+                        if transcript_id:
+                            self.transcript_to_exons[transcript_id].add(Interval(entry.start, entry.end, entry.contig + entry.strand))
 
                     exon_id = None
                     res = exon_id_regex.search(entry.attributes)
                     if res:
                         exon_id = res.group(1)
-                        if exon_id not in self.id_to_coordinates:
+                        if exon_id not in self.id_to_coordinates and exon_id:
                             self.id_to_coordinates[exon_id] = Interval(entry.start, entry.end, entry.contig + entry.strand)
 
 
@@ -299,26 +313,26 @@ class Configuration:
         if self.bed_annotation:
             if type(self.bed_annotation) is list:
                 for bed_path in self.bed_annotation:
-                    for bed_entry in itv.bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
-                        all_known_annotations[bed_entry.name] = itv.VirtualBEDTrack(transcripts = [bed_entry])
+                    for bed_entry in bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
+                        all_known_annotations[bed_entry.name] = bedtrack.VirtualBEDTrack(transcripts = [bed_entry])
             elif type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
-                    for bed_entry in itv.bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
-                        all_known_annotations[bed_entry.name] = itv.VirtualBEDTrack(transcripts = [bed_entry])
+                    for bed_entry in bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
+                        all_known_annotations[bed_entry.name] = bedtrack.VirtualBEDTrack(transcripts = [bed_entry])
             else:
-                for bed_entry in itv.bedtrack.bed_fetch(self.bed_annotation, interval.chrom, interval.begin, interval.end):
-                    all_known_annotations[bed_entry.name] = itv.VirtualBEDTrack(transcripts = [bed_entry])
+                for bed_entry in bedtrack.bed_fetch(self.bed_annotation, interval.chrom, interval.begin, interval.end):
+                    all_known_annotations[bed_entry.name] = bedtrack.VirtualBEDTrack(transcripts = [bed_entry])
         return all_known_annotations
 
 
-    def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False, use_names=True):
+    def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False):
         bed_track.color_fn = self.bed_color_fn
         bed_track.vertical_layout = vertical_layout
         bed_track.strand_specific = strand_specific
         view.add_track(bed_track)
 
 
-    def add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names=True):
+    def add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names: Union[bool, Mapping[str, Optional[str]]] = True):
         """
         Transparently adds BED tracks as needed to a view for all BEDs in this configuration,
         regardless of whether they reference a file or are in-memory, and of self.bed_annotation format.
@@ -337,45 +351,45 @@ class Configuration:
             if type(self.bed_annotation) is list:
                 for bed_path in self.bed_annotation:
                     bed_track = make_bed_track(bed_path)
-                    self.add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific, use_names)
+                    self.add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific)
             elif type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
                     if use_names:
                         if type(use_names) is dict:
                             if use_names[bed_name] is not None:
-                                view.add_track(itv.track.TrackLabel(use_names[bed_name]))
+                                view.add_track(track.TrackLabel(use_names[bed_name]))
                         else:
-                            view.add_track(itv.track.TrackLabel(bed_name))
+                            view.add_track(track.TrackLabel(bed_name))
                     # else:
                     #     view.add_track(itv.track.TrackLabel(""))
                     virtual_bed = make_bed_track(bed_path, name="")
-                    self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
+                    self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
             else:
                 virtual_bed = make_bed_track(self.bed_annotation)
-                self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific, use_names)
+                self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
 
 
     def build_view_row(self, start, end, chrom, strand, bams_dict,
-                       padding_perc = 0.1,
-                       add_track_label = "auto",
-                       add_reads_label = "auto",
-                       add_coverage_label = "auto",
-                       with_reads = True,
-                       with_axis = True,
-                       with_coverage = True,
-                       with_bed = True,
-                       with_bed_label = False,
-                       coverage_bin_size = 0,
-                       coverage_height = 100,
-                       coverage_tag = None,
-                       coverage_tag_fn = None,
-                       coverage_by_strand = False,
-                       priming_orientation = "3p",
-                       strand_specific_bam = False,
-                       strand_specific_bed = False,
-                       vertical_layout_reads = False,
-                       max_read_depth = None,
-                       max_read_count = 100,
+                       padding_perc: float = 0.1,
+                       add_track_label: Union[str, bool] = "auto",
+                       add_reads_label: Union[str, bool] = "auto",
+                       add_coverage_label: Union[str, bool] = "auto",
+                       with_reads: bool = True,
+                       with_axis: bool = True,
+                       with_coverage: bool = True,
+                       with_bed: bool = True,
+                       with_bed_label: Union[bool, Mapping[str, Optional[str]]] = False,
+                       coverage_bin_size: int = 0,
+                       coverage_height: int = 100,
+                       coverage_tag: Optional[str] = None,
+                       coverage_tag_fn: Optional[Callable[[Any], str]] = None,
+                       coverage_by_strand: bool = False,
+                       priming_orientation: str = "3p",
+                       strand_specific_bam: bool = False,
+                       strand_specific_bed: bool = False,
+                       vertical_layout_reads: bool = False,
+                       max_read_depth: Optional[int] = None,
+                       max_read_count: Optional[int] = 100,
                        include_secondary = False,
                        include_read_fn = None,
                        read_color_fn = None,
@@ -385,7 +399,7 @@ class Configuration:
                        view_width = None,
                        view_margin_y = None,
                        fill_coverage = True,
-                       coverage_track_max_y = None,
+                       coverage_track_max_y: Optional[Union[int, Mapping[str, int]]] = None,
                        draw_coverage_y_axis = True,
                        tighter_track = False,
                        **kwargs):
@@ -463,35 +477,36 @@ class Configuration:
         """
 
         if row is None:
-            row = itv.ViewRow("row")
+            row = genomeview.ViewRow("row")
 
         start, end = get_padded_coordinates(start, end, padding_perc)
-        gene_view = itv.GenomeView(chrom, start, end, strand, self.genome_fasta)
+        gene_view = genomeview.GenomeView(chrom, start, end, strand, self.genome_fasta)
 
         if add_track_label:
             if add_track_label == "auto":
-                gene_view.add_track(itv.track.TrackLabel(chrom + " : " + str(start) + " - " + str(end)))
+                gene_view.add_track(track.TrackLabel(chrom + " : " + str(start) + " - " + str(end)))
             else:
-                gene_view.add_track(itv.track.TrackLabel(add_track_label))
+                gene_view.add_track(track.TrackLabel(add_track_label))
 
         if with_bed:
             self.add_bed_tracks_to_view(gene_view,  strand_specific = strand_specific_bed, use_names = with_bed_label)
 
         if with_axis:
-            gene_view.add_track(itv.Axis())
+            gene_view.add_track(axis.Axis())
         for key, value in bams_dict.items():
-            if isinstance(value, itv.VirtualBAM):
-                opener_kwargs = {'opener_fn': lambda x: x}
-            else:
-                opener_kwargs = {}
+            opener_kwargs = {}
+            if isinstance(value, bamtrack.VirtualBAM):
+                opener_kwargs = {'opener_fn': bam_read_operations.get_bam_opener(value)}
 
-
+            coverage_track = None
             if with_coverage:
                 coverage_label = ""
                 if add_coverage_label:
                     if add_coverage_label == "auto":
                         coverage_label = key
-                coverage_track = itv.BAMCoverageTrack(value, name=coverage_label, **opener_kwargs)
+                    # TODO: add dict handling with key
+                    
+                coverage_track = bamtrack.BAMCoverageTrack(value, name=coverage_label, **opener_kwargs)
                 coverage_track.include_read_fn = include_read_fn
                 coverage_track.strand_specific = strand_specific_bam
                 coverage_track.bin_size = coverage_bin_size
@@ -505,24 +520,26 @@ class Configuration:
                 if fill_coverage:
                     coverage_track.fill_coverage = True
 
-                if coverage_track_max_y:
-                    if type(coverage_track_max_y) is dict:
+                if isinstance(coverage_track_max_y, Mapping):
+                    if key in coverage_track_max_y:
                         coverage_track.max_y = coverage_track_max_y[key]
-                    else:
-                        coverage_track.max_y = coverage_track_max_y
+                elif coverage_track_max_y is not None:
+                    coverage_track.max_y = coverage_track_max_y
                 gene_view.add_track(coverage_track)
             if with_reads:
                 reads_label = ""
                 if add_reads_label:
                     if add_reads_label == "auto":
                         reads_label = key
+                    # TODO: add dict handling with key
 
                 if tighter_track:
                     bam_track = TighterSingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 else:
-                    bam_track = itv.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
+                    bam_track = bamtrack.SingleEndBAMTrack(value, name=reads_label, **opener_kwargs)
                 if include_secondary:
-                    coverage_track.include_secondary = True
+                    if coverage_track:
+                        coverage_track.include_secondary = True
                     bam_track.include_secondary = True
                 bam_track.max_depth = max_read_depth
                 bam_track.max_reads = max_read_count
@@ -599,7 +616,7 @@ class Configuration:
             anything that can be passed to :meth:`build_view_row()`
         """
 
-        row = itv.ViewRow("row")
+        row = genomeview.ViewRow("row")
 
         if interval_list is not None:
             for interval in interval_list:
@@ -645,7 +662,7 @@ class Configuration:
         A new Document that contains a view of the interval : :py:class:`integrative_transcriptomics_viewer.Document`
         """
 
-        doc = itv.Document(view_width)
+        doc = genomeview.Document(view_width)
         return self.add_single_view_row_to_plot(doc, **kwargs)
 
 
@@ -677,7 +694,7 @@ class Configuration:
         A new Document that contains the views of the intervals : :py:class:`integrative_transcriptomics_viewer.Document`
         """
 
-        doc = itv.Document(view_width)
+        doc = genomeview.Document(view_width)
 
         if interval_list is not None:
             for i in range(0, len(interval_list), N_per_row):
@@ -842,7 +859,8 @@ class Configuration:
         return features_tab
 
 
-    def plot_read(self, read_id, bams_dict, interval="auto", output_format="svg", silence_error=False, **kwargs):
+    # TODO: add non widget version to be able to do a normal SVG export
+    def plot_read(self, read_id, bams_dict, interval: Union[str, Interval] = "auto", output_format: str = "svg", silence_error: bool = False, **kwargs) -> Optional[widgets.VBox]:
         """
         Parameters
         ----------
@@ -864,25 +882,30 @@ class Configuration:
         An ipywidget of all the windows in which a given read aligns. : :py:class:`ipywidgets.widgets.widget_selectioncontainer.Tab`
         """
 
-        (regions, virtual_bams) = find_read_in_bam(read_id, bams_dict, silence_error)
-
-        if regions == -1:
+        result = bam_read_operations.find_read_in_bam(read_id, bams_dict, silence_error)
+        if result is None:
             return None
+
+        regions, virtual_bams = result
 
 
         all_widgets = []
         for region, virtual_bam in zip(regions, virtual_bams):
             if isinstance(interval, str) and interval == "auto":
                 tmp = self.plot_interval(bams_dict={"read": virtual_bam}, interval=region, **kwargs).get_widget(output_format)
-            else:
+            elif isinstance(interval, Interval) :
                 tmp = self.plot_interval(bams_dict={"read": virtual_bam}, interval=interval, **kwargs).get_widget(output_format)
+            else:
+                print("Error: interval provided is neigther an Interval nor \"auto\"")
+                return
             if tmp is not None:
                 all_widgets.append(tmp)
 
         return widgets.VBox(all_widgets)
 
 
-    def plot_reads(self, read_ids, bams_dict, interval, output_format="svg", **kwargs):
+    # TODO: add non widget version to be able to do a normal SVG export
+    def plot_reads(self, read_ids, bams_dict, interval: Union[str, Interval] = "auto", output_format: str = "svg", **kwargs) -> Optional[widgets.VBox]:
         """
         Parameters
         ----------
@@ -906,7 +929,7 @@ class Configuration:
 
         if not isinstance(interval, Interval):
             print("Error, Interval() required but not provided")
-            return -1
+            return None
 
         first = False
         all_widgets = []
@@ -915,17 +938,21 @@ class Configuration:
 
         for bam_name, bam_file in bams_dict.items():
             for read_id in read_ids:
-                all_widgets.extend(self.plot_read(read_id,
-                                                  {bam_name: bam_file},
-                                                  interval,
-                                                  output_format,
-                                                  silence_error=True,
-                                                  with_coverage = False,
-                                                  with_axis = False,
-                                                  with_bed = False,
-                                                  add_track_label = False,
-                                                  add_reads_label = False,
-                                                  **kwargs).children)
+                read_widget = self.plot_read(read_id,
+                                             {bam_name: bam_file},
+                                             interval,
+                                             output_format,
+                                             silence_error=True,
+                                             with_coverage = False,
+                                             with_axis = False,
+                                             with_bed = False,
+                                             add_track_label = False,
+                                             add_reads_label = False,
+                                             **kwargs)
+                if read_widget is None:
+                    continue
+                read_box = cast(widgets.Box, read_widget)
+                all_widgets.extend(read_box.children)
         return widgets.VBox(all_widgets)
 
 
@@ -959,7 +986,7 @@ class Configuration:
                                    view_width = 1600,
                                    N_per_row=99999,
                                    **kwargs):
-        doc = itv.Document(view_width)
+        doc = genomeview.Document(view_width)
         for i in range(0, len(intervals), N_per_row):
            self.make_intervals_row_through_virtual(doc, intervals[i:i+N_per_row], **kwargs)
         return doc
@@ -972,8 +999,8 @@ class Configuration:
                           padding_perc = 0.1,
                           **kwargs):
 
-        exons_list = self.plot_exons_helper(feature, merge_exons, **kwargs)
-        if isinstance(exons_list, itv.Document):
+        exons_list = self.plot_exons_helper_get_info(feature, merge_exons, **kwargs)
+        if isinstance(exons_list, genomeview.Document):
             return exons_list
         # else res is an exons_list
 
@@ -988,7 +1015,7 @@ class Configuration:
             left_bound = min(left_bound, interval.begin)
             right_bound = max(right_bound, interval.end)
 
-        padding = None
+        padding = 0
         if not normalize_interval_width:
             padding = math.ceil(smallest_interval_size * padding_perc)
             padding_perc = padding / (right_bound - left_bound + 1)  # recalculate so that we minimize the full svg size
@@ -1003,7 +1030,7 @@ class Configuration:
         doc_actual_height = doc.height
       
 
-        per_base_size = None
+        per_base_size = 0.0
         reserved_width = (len(exons_list) - 1) * doc.elements[0].space_between + doc.margin_x * 2
         if not normalize_interval_width:
             total_interval_size = total_interval_size + (padding * len(exons_list))
@@ -1123,7 +1150,7 @@ class Configuration:
             all_views = []
             all_titles = []
             for exon in exons_list:
-                doc = itv.Document(view_width)
+                doc = genomeview.Document(view_width)
                 self.make_intervals_row_through_virtual(doc, [exon], **kwargs)
                 all_views.append(widgets.HTML(doc._repr_svg__()))
                 all_titles.append("Exon:: " + exon.data + " : " + str(exon.begin) + " - " + str(exon.end))
@@ -1134,7 +1161,7 @@ class Configuration:
             return(widgets.VBox([dropdown, stack]))
 
         else:
-            doc = itv.Document(view_width)
+            doc = genomeview.Document(view_width)
             for i in range(0, len(exons_list), N_per_row):
                self.make_intervals_row_through_virtual(doc, exons_list[i:i+N_per_row], **kwargs)
             return doc
@@ -1200,7 +1227,7 @@ class Configuration:
             all_views = []
             all_titles = []
             for pair in exons_pairs:
-                doc = itv.Document(view_width)
+                doc = genomeview.Document(view_width)
                 self.make_intervals_row_through_virtual(doc, pair, **kwargs)
                 all_views.append(widgets.HTML(doc._repr_svg__()))
                 all_titles.append("Splice junction btw: exon:: " + pair[0].data + ":" + str(pair[0].begin) + "-" + str(pair[0].end) + " and exon::" + pair[1].data + " : " + str(pair[1].begin) + " - " + str(pair[1].end))
@@ -1211,7 +1238,7 @@ class Configuration:
             return(widgets.VBox([dropdown, stack]))
 
         else:
-            doc = itv.Document(view_width)
+            doc = genomeview.Document(view_width)
             for pair in exons_pairs:
                self.make_intervals_row_through_virtual(doc, pair, **kwargs)
             return doc
@@ -1260,7 +1287,7 @@ class Configuration:
         kwargs.pop("vertical_layout_reads", None)  # remove option if provided because it is enforced to True in this mode
 
         if row is None:
-            row = itv.ViewRow("row")
+            row = genomeview.ViewRow("row")
 
         total_interval_size = 0
         left_bound = math.inf
@@ -1275,8 +1302,9 @@ class Configuration:
 
         reserved_width = (len(intervals_list) - 1) * row.space_between + doc.margin_x * 2
         padding = math.ceil(smallest_interval_size * padding_perc)
-        left_bound -= padding
-        right_bound += padding
+        left_bound = math.floor(left_bound - padding)
+        right_bound = math.ceil(right_bound + padding)
+        per_base_size = 0.0
         if not normalize_interval_width:
             total_interval_size = total_interval_size + (padding * len(intervals_list))
             per_base_size = (doc.width - reserved_width)/total_interval_size
@@ -1291,10 +1319,10 @@ class Configuration:
                 all_reads_for_coverage = set()
 
                 bam_refs = None
-                opener_fn = get_bam_opener(value)
+                opener_fn = bam_read_operations.get_bam_opener(value)
                 with opener_fn(value) as bam:
                     bam_refs = bam.references
-                    virtual_bam = itv.bamtrack.VirtualBAM([], bam_refs)
+                    virtual_bam = bamtrack.VirtualBAM([], bam_refs)
                     virtual_bam.dumb_fetch = True
                     # bam_track.quick_consensus = False;
                     
@@ -1314,8 +1342,8 @@ class Configuration:
                     virtual_bams_dict[key] = virtual_bam
 
                 if with_coverage:
-                    tmp_view = itv.GenomeView(intervals_list[0].chrom, left_bound, right_bound, intervals_list[0].strand)
-                    coverage_track_series = itv.BAMCoverageTrack(value, opener_fn=opener_fn)
+                    tmp_view = genomeview.GenomeView(intervals_list[0].chrom, left_bound, right_bound, intervals_list[0].strand)
+                    coverage_track_series = bamtrack.BAMCoverageTrack(value, opener_fn=opener_fn)
                     if "priming_orientation" in kwargs:
                         coverage_track_series.priming_orientation = kwargs["priming_orientation"]
                     if "coverage_bin_size" in kwargs:
@@ -1334,9 +1362,9 @@ class Configuration:
 
 
         bed_config = self  # default, if not with_bed_labels, use the original since not modifying it
-        new_beds = {}
-        new_bed_labels = {}
-        secondary_new_bed_labels = {}
+        new_beds: Dict[str, bedtrack.VirtualBEDTrack] = {}
+        new_bed_labels: Union[bool, Dict[str, Optional[str]]] = {}
+        secondary_new_bed_labels: Union[bool, Dict[str, Optional[str]]] = {}
         if with_bed_label:
             bed_config = self.shallow_copy()
             seen_bed_entries = set()
@@ -1345,7 +1373,7 @@ class Configuration:
                     is_not_first = 0
                     # seen_bed_entries = set()
                     for interval in intervals_list:
-                        for bed_entry in itv.bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
+                        for bed_entry in bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
                             if bed_entry.name in seen_bed_entries:
                                 continue
                             label = None
@@ -1355,7 +1383,7 @@ class Configuration:
                                 new_key = bed_name
                                 label = bed_name
                             is_not_first += 1
-                            new_beds[new_key] = itv.VirtualBEDTrack(transcripts=[bed_entry], name=None)
+                            new_beds[new_key] = bedtrack.VirtualBEDTrack(transcripts=[bed_entry], name=None)
                             new_bed_labels[new_key] = label
                             secondary_new_bed_labels[new_key] = "" if label else None
                             seen_bed_entries.add(bed_entry.name)
@@ -1367,11 +1395,11 @@ class Configuration:
                 for bed_path in self.bed_annotation:
                     # seen_bed_entries = set()
                     for interval in intervals_list:
-                        for bed_entry in itv.bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
+                        for bed_entry in bedtrack.bed_fetch(bed_path, interval.chrom, interval.begin, interval.end):
                             if bed_entry.name in seen_bed_entries:
                                 continue
                             new_key = "__tmp_" + str(i)
-                            new_beds[new_key] = itv.VirtualBEDTrack(transcripts=[bed_entry], name=None)
+                            new_beds[new_key] = bedtrack.VirtualBEDTrack(transcripts=[bed_entry], name=None)
                             seen_bed_entries.add(bed_entry.name)
                             i += 1
                 bed_config.update_bed(new_beds)
@@ -1381,12 +1409,12 @@ class Configuration:
                 i = 0
                 
                 for interval in intervals_list:
-                    for bed_entry in itv.bedtrack.bed_fetch(self.bed_annotation, interval.chrom, left_bound, right_bound):
+                    for bed_entry in bedtrack.bed_fetch(self.bed_annotation, interval.chrom, left_bound, right_bound):
                         if bed_entry.name in seen_bed_entries:
                             continue
                         seen_bed_entries.add(bed_entry.name)
                         new_key = "__tmp_" + str(i)
-                        new_beds[new_key] = itv.VirtualBEDTrack(transcripts=[bed_entry], name=None)
+                        new_beds[new_key] = bedtrack.VirtualBEDTrack(transcripts=[bed_entry], name=None)
                         i += 1
                 bed_config.update_bed(new_beds)
         else:
@@ -1441,12 +1469,12 @@ class Configuration:
             if add_track_label:
                 add_track_label = "\n"
             new_bed_labels = secondary_new_bed_labels
-            add_reads_label = None
-            add_coverage_label = None
+            add_reads_label = False
+            add_coverage_label = False
 
             if with_coverage:
                 for track in row.views[-1].get_tracks():
-                    if isinstance(track, itv.bamtrack.BAMCoverageTrack):
+                    if isinstance(track, bamtrack.BAMCoverageTrack):
                         # track.series = bam_path_to_series[track.bam_path]
                         track.series = bam_track_to_series[track.bam_path]
                         track.cached_series = True
@@ -1519,7 +1547,7 @@ class Configuration:
         bed_config = self.shallow_copy()
 
         if custom_bed_dict is not None:
-            all_bed_entries = itv.VirtualBEDTrack()
+            all_bed_entries = bedtrack.VirtualBEDTrack()
             for virtual_bed in custom_bed_dict.values():
                 for transcript in virtual_bed.transcripts:
                     if transcript not in all_bed_entries.transcripts:
@@ -1701,6 +1729,10 @@ class Configuration:
                 intervals = [self.get_interval_from_feature(feature)]
             elif plot_type == "plot_exons":
                 intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+            else:
+                raise ValueError(
+                    f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
+                )
 
             custom_bed_dict = None
             if custom_bed_dict_dict is not None and feature in custom_bed_dict_dict:
@@ -1777,7 +1809,7 @@ class Configuration:
                                 plot_type = "plot_feature",
                                 page_title = "Plot by feature", # and split by barcode whitelist category if provided
                                 cellbarcode_whitelist = None,
-                                cellbarcode_from = itv.StandardCellBarcode(),
+                                cellbarcode_from = cellbarcode.StandardCellBarcode(),
                                 **kwargs):
         """
         Returns an HTML object to output or display, with views separated over tabs by the list of features provided. Within tabs, split in subtabs over BAMs.
@@ -1816,15 +1848,21 @@ class Configuration:
                     intervals = [self.get_interval_from_feature(feature)]
                 elif plot_type == "plot_exons":
                     intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+                else:
+                    raise ValueError(
+                        f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
+                    )
+
 
                 for bam_name, bam_file in bams_dict.items():
 
                     #for bam_name, bam_file in bams_dict.items():
-                    virtual_bams_dict[feature].update(itv.split_bam_by_cellbarcode_whitelist(bam_name,
-                                                                                             bam_file,
-                                                                                             intervals,
-                                                                                             cellbarcode_whitelist = cellbarcode_whitelist,
-                                                                                             cellbarcode_from = cellbarcode_from))
+                    virtual_bams_dict[feature].update(bam_read_operations.split_bam_by_cellbarcode_whitelist(
+                                                                                            bam_name,
+                                                                                            bam_file,
+                                                                                            intervals,
+                                                                                            cellbarcode_whitelist = cellbarcode_whitelist,
+                                                                                            cellbarcode_from = cellbarcode_from))
             else:
                 for bam_name, bam_file in bams_dict.items():
                     virtual_bams_dict[feature][bam_name] = bam_file
@@ -1832,7 +1870,7 @@ class Configuration:
 
         tabs = self.organize_tabs_by_feature(virtual_bams_dict, **kwargs)
 
-        return itv.templates.render_tab_titles(tabs, page_title)
+        return templates.render_tab_titles(tabs, page_title)
 
 
     # classified_dict has the classification as keys
@@ -1915,7 +1953,7 @@ class Configuration:
 
         virtual_bams_dict = {}
         for bam_name, bam_file in bams_dict.items():
-            virtual_bams_dict.update(itv.split_bam_by_classification(bam_file = bam_file,
+            virtual_bams_dict.update(bam_read_operations.split_bam_by_classification(bam_file = bam_file,
                                                                      name_prefix = bam_name,
                                                                      feature_id = feature_id,
                                                                      interval = interval,
@@ -1976,7 +2014,7 @@ class Configuration:
                                              custom_bed_dict_dict = virtual_beds_dict_dict,
                                              **kwargs)
 
-        return itv.templates.render_tab_titles(tabs, page_title)
+        return templates.render_tab_titles(tabs, page_title)
 
 
 
@@ -2028,6 +2066,10 @@ class Configuration:
         elif plot_type == "plot_exons":
             intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
             interval = self.get_interval_from_feature((feature_id, feature_type))
+        else:
+            raise ValueError(
+                f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
+            )
 
 
         start, end = get_padded_coordinates(start = interval.begin, end = interval.end, padding_perc = padding_perc)
@@ -2037,7 +2079,8 @@ class Configuration:
         if add_all_tab:
             virtual_bams_dict_dict["all"] = {} 
         for bam_name, bam_file in bams_dict.items():
-            for classification, virtual_bam in (itv.split_bam_by_classification(bam_file = bam_file,
+            for classification, virtual_bam in (bam_read_operations.split_bam_by_classification(
+                                                                                bam_file = bam_file,
                                                                                 name_prefix = "",
                                                                                 feature_id = feature_id,
                                                                                 interval = interval,
@@ -2066,7 +2109,8 @@ class Configuration:
                                                     custom_bed_dict_dict = virtual_beds_dict_dict,
                                                     **kwargs)
 
-        return itv.templates.render_tab_titles(tabs, page_title)
+        return templates.render_tab_titles(tabs, page_title)
+
 
 
 

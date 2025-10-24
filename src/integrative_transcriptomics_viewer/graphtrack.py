@@ -114,12 +114,12 @@ class GraphTrack(Track):
                 # need to add checks that series.x[somevalue:] is not > scale.end or break in loop
                 #      and then loop path back to start
 
+                baseline_y = self.ytopixels(0) + renderer.y
                 full_path = "<path d=\"M "
-                started = False
-                starting_x = 0
-                starting_y = 0
+                starting_x = None
+                starting_y = baseline_y
                 prev_y = 0
-                # y1 = self.ytopixels(0) + renderer.y  # in case of empty coverage, so that the "past scale end" check doesn't error
+                y1 = None
 
                 for (x, y) in zip(series.x, series.y):
                     if x < self.scale.start:
@@ -127,38 +127,36 @@ class GraphTrack(Track):
                         continue
 
                     if x >= self.scale.end - 1:
-                        if started:
-                            # if coverage wasn't 0 before going out of bound
-                            if y1 != self.ytopixels(0) + renderer.y:
-                                x1 = self.scale.topixels(self.scale.end) + renderer.x
-                                full_path += f" L {x1:.2f} {y1:.2f}"
+                        if y1 is not None:
+                            end_x = self.scale.topixels(self.scale.end) + renderer.x
+                            if y1 != baseline_y:
+                                full_path += f" L {end_x:.2f} {y1:.2f}"
                                 current_min_y = min(current_min_y, y1)
-
-                            y1 = self.ytopixels(0) + renderer.y
-                            full_path += f" L {x1:.2f} {y1:.2f}"
+                            y1 = baseline_y
+                            full_path += f" L {end_x:.2f} {y1:.2f}"
                         break
 
-                    if not started:
+                    if y1 is None:
                         # starting anchor points at (0, 0) and (0, prev_y)
                         if prev_y > 0:
-                            x1 = self.scale.topixels(self.scale.start) + renderer.x
-                            y1 = self.ytopixels(0) + renderer.y
-                            full_path += f"{x1:.2f} {y1:.2f}"
-                            starting_x = x1
+                            starting_x = self.scale.topixels(self.scale.start) + renderer.x
+                            y1 = baseline_y
+                            full_path += f"{starting_x:.2f} {y1:.2f}"
                             starting_y = y1
 
                             y1 = self.ytopixels(prev_y) + renderer.y
-                            full_path += f" L {x1:.2f} {y1:.2f}"
+                            full_path += f" L {starting_x:.2f} {y1:.2f}"
 
                         # starting anchor point at (x, 0)
                         else:
-                            y1 = self.ytopixels(0) + renderer.y
+                            y1 = baseline_y
                             starting_y = y1
 
                         current_min_y = min(current_min_y, y1)
-                        started = True
 
-                    # else:
+                    if y1 is None:
+                        continue
+
                     x1 = self.scale.topixels(x) + renderer.x
                     if len(full_path) > 11:
                         full_path += f" L {x1:.2f} {y1:.2f}"
@@ -170,7 +168,7 @@ class GraphTrack(Track):
                     full_path += f" L {x1:.2f} {y1:.2f}"
                     current_min_y = min(current_min_y, y1)
 
-                if len(full_path) > 11:
+                if len(full_path) > 11 and starting_x is not None:
                     full_path += f" L {starting_x:.2f} {starting_y:.2f}\" xcenter=\"{((self.ytopixels(0) + current_min_y)/2):.2f}\" stroke=\"{series.color}\" fill=\"{series.color}\" stroke_width=\"1\"></path>"
                 else:
                     full_path = ""

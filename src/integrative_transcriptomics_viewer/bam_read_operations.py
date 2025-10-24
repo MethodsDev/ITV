@@ -1,14 +1,18 @@
-from integrative_transcriptomics_viewer.bamtrack import VirtualBAM
+from integrative_transcriptomics_viewer.bamtrack import VirtualBAM, AlignmentOpener
 from intervaltree import Interval
 from integrative_transcriptomics_viewer.settings import bam_threads
-
 import pysam
+from typing import List, Optional, Tuple, cast
 
-def get_bam_opener(bam):
+
+def _open_virtual_bam(bam: VirtualBAM) -> VirtualBAM:
+    return bam
+
+
+def get_bam_opener(bam) -> AlignmentOpener:
     if isinstance(bam, VirtualBAM):
-        return lambda x: x
-    else:
-        return lambda x: pysam.AlignmentFile(x, threads=bam_threads)
+        return _open_virtual_bam
+    return cast(AlignmentOpener, lambda x: pysam.AlignmentFile(x, threads=bam_threads))
 
 
 def get_virtualbam_max_coverage(coverage_bam):
@@ -33,40 +37,53 @@ def get_virtualbam_max_coverage(coverage_bam):
     return current_max
 
 
-def get_regions_by_read_id(bam_file, read_id, opener_fn=pysam.AlignmentFile):
-    regions = []
+def get_regions_by_read_id(bam_file, read_id, opener_fn: AlignmentOpener = pysam.AlignmentFile):
+    regions: List[Interval] = []
 
-    with opener_fn(bam) as bam_in:
+    with opener_fn(bam_file) as bam_in:
         for read in bam_in.fetch():
             if read.query_name != read_id:
                 continue
 
-            regions.append(Interval(read.reference_start, read.reference_end, bam_in.get_reference_name(read.reference_id) + "+" if read.is_forward else "-"))
+            if read.is_unmapped:
+                print(f'Found read {read_id} but it is unmapped.')
+                continue
+
+            reference_name = read.reference_name
+            if reference_name is None:
+                reference_name = bam_in.get_reference_name(read.reference_id)
+            regions.append(Interval(read.reference_start,
+                                    read.reference_end,
+                                    reference_name + ("+" if read.is_forward else "-")))
 
     return(regions)
 
 
-def find_read_in_bam(read_id, bams_dict, silence_error=False):
-    regions = []
-    virtual_bams = []
+def find_read_in_bam(read_id, bams_dict, silence_error=False) -> Optional[Tuple[List[Interval], List[VirtualBAM]]]:
+    regions: List[Interval] = []
+    virtual_bams: List[VirtualBAM] = []
 
     for key, value in bams_dict.items():
-        if isinstance(value, VirtualBAM):
-            opener_fn = lambda x: x
-        else:
-            opener_fn = pysam.AlignmentFile
+        opener_fn = get_bam_opener(value)
 
         with opener_fn(value) as bam_in:
             bam_refs = bam_in.references
             for read in bam_in.fetch():
                 if read.query_name != read_id:
                     continue
-                regions.append(Interval(read.reference_start, read.reference_end, read.reference_name + ("+" if read.is_forward else "-")))
+                if read.reference_id < 0:
+                    continue
+                reference_name = read.reference_name
+                if reference_name is None:
+                    reference_name = bam_in.get_reference_name(read.reference_id)
+                regions.append(Interval(read.reference_start,
+                                        read.reference_end,
+                                        reference_name + ("+" if read.is_forward else "-")))
                 virtual_bams.append(VirtualBAM([read], bam_refs))
     
     if len(regions) == 0 and not silence_error:
         print("Error: read either not found or not aligned")
-        return (-1, -1)
+        return None
 
     return (regions, virtual_bams)
 
@@ -132,10 +149,12 @@ def split_bam_by_classification(bam_file,
                                 classification_from,
                                 cellbarcode_from = None,
                                 cellbarcode_whitelist = None,
-                                **kwargs):
+                                **kwargs) -> dict[str, VirtualBAM]:
     if classification_from is None:
-        print("No way of getting classification provided")
-        return -1
+        raise ValueError("No classification provider supplied")
+
+    if cellbarcode_whitelist is not None and cellbarcode_from is None:
+        raise ValueError("cellbarcode_from must be provided when cellbarcode_whitelist is used")
 
     opener_fn = get_bam_opener(bam_file)
 
@@ -152,7 +171,7 @@ def split_bam_by_classification(bam_file,
             ## maybe still keep key name of barcode to use in name
             whitelist = ""
             if cellbarcode_whitelist is not None:
-                cell_barcode = cellbarcode_from.get_barcode(read)
+                cell_barcode = cellbarcode_from.get_barcode(read)  # pyright: ignore[reportOptionalMemberAccess] ; at this point it's has already been checked not to be None
                 if not cell_barcode:
                     continue
                 whitelist = is_in_whitelist(cell_barcode, cellbarcode_whitelist)

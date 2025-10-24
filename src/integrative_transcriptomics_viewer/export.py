@@ -7,11 +7,12 @@ import xml.etree.ElementTree as ET
 import re
 import math
 import copy
+from typing import List, Optional
 from intervaltree import Interval, IntervalTree
 from ipywidgets.embed import embed_minimal_html, dependency_state
 import cairosvg
 
-RESVG = None
+RESVG: Optional[List[str]] = None
 
 
 def split_svg_header_to_matrix(svg_header, x_width, y_height):
@@ -188,11 +189,11 @@ class SvgSplitter:
     #         current_height += update_splits_height(subelement, current_height)
     #     current_height += element.attrib['height']
 
-    def update_splits_height(self, element, current_height=0):
-        for subelement in element:
-            current_height += self.update_splits_height(subelement, current_height)
-        current_height += float(element.attrib.get('height', 0))
-        return current_height
+    # def update_splits_height(self, element, current_height: float = 0.0) -> float:
+    #     for subelement in element:
+    #         current_height += self.update_splits_height(subelement, current_height)
+    #     current_height += float(element.attrib.get('height', 0))
+    #     return current_height
     
     def write_splits(self, prefix):
         output_files = []
@@ -549,6 +550,7 @@ class SvgSplitter:
 def convert_svg(inpath, outpath, output_format, requested_converter=None):
     converter = _getExportConverter(output_format, requested_converter=requested_converter)
 
+    exportData = None
     if converter == "webkittopdf":
         exportData = _convertSVG_webkitToPDF(inpath, outpath, output_format)
     elif converter == "resvg":
@@ -557,6 +559,11 @@ def convert_svg(inpath, outpath, output_format, requested_converter=None):
         exportData = _convertSVG_rsvg_convert(inpath, outpath, output_format)
     elif converter == "inkscape":
         exportData = _convertSVG_inkscape(inpath, outpath, output_format)
+    else:
+        raise RuntimeError(f"Unsupported converter {converter!r} for format {output_format!r}")
+
+    if exportData is None:
+        raise RuntimeError(f"{converter} failed to convert {inpath} to {output_format}")
 
     return exportData
 
@@ -631,34 +638,42 @@ def _checkInkscape():
 
 
 def _convertSVG_resvg(inpath, outpath):
+    if not _checkRESVGConvert():
+        raise RuntimeError("resvg executable not found; cannot convert SVG to PNG.")
+
+    assert RESVG is not None
+
     try:
-        # cmd = "resvg {} {}".format(inpath, outpath)
         cmd = RESVG + [inpath, outpath]
-        subprocess.check_call(cmd)#, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError:
-        return None
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"resvg failed with exit code {exc.returncode}") from exc
 
     return open(outpath, "rb").read()
 
 
-def _convertSVG_resvg_stdio(indata):
-    _checkRESVGConvert()
-    try:
-        if isinstance(indata, str):
-            indata = indata.encode('utf-8')
+def _convertSVG_resvg_stdio(indata) -> bytes:
+    if not _checkRESVGConvert():
+        raise RuntimeError("resvg executable not found; cannot convert SVG to PNG.")
 
-        cmd = RESVG +  ["--resources-dir", "./", "-", "-c"]
-        process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        outdata, errdata = process.communicate(indata)
-        if process.returncode != 0:
-            print(f"Error: {errdata.decode('utf-8')}")
-            return None
+    if isinstance(indata, str):
+        indata = indata.encode("utf-8")
 
-        return outdata
+    assert RESVG is not None
 
-    except subprocess.CalledProcessError as e:
-        print(f"Subprocess failed with error {e}")
-        return None
+    cmd = RESVG + ["--resources-dir", "./", "-", "-c"]
+    process = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    outdata, errdata = process.communicate(indata)
+    if process.returncode != 0:
+        message = errdata.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"resvg failed with exit code {process.returncode}: {message}")
+
+    return outdata
 
 
 def _convertSVG_webkitToPDF(inpath, outpath, output_format):
