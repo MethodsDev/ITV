@@ -2,6 +2,7 @@ from integrative_transcriptomics_viewer.utilities import my_hook_compressed, fla
 from integrative_transcriptomics_viewer.bam_read_operations import get_read_tag
 
 from abc import ABC, abstractmethod
+from typing import Optional, List
 
 import pysam
 
@@ -14,8 +15,8 @@ class Classification(ABC):
     """
 
     @abstractmethod
-    def get_classification(self, read, gene_id):
-        pass
+    def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
+        raise NotImplementedError
         # should return a list of classifcations (because of possible ambiguous)
 
 
@@ -58,7 +59,7 @@ class IsoQuantClassification(Classification):
                 if line[0] == "#":
                     continue
 
-                fields = line.rstrip().split("\t")
+                fields = line.rstrip().split("\t")  # pyright: ignore[reportArgumentType]
                 
                 # values =  dict.fromkeys(self.ISOQUANT_READ_ASSIGNMENTS_DEFS)
                 # for field_name, field in self.ISOQUANT_READ_ASSIGNMENTS_DEFS.items():
@@ -83,7 +84,7 @@ class IsoQuantClassification(Classification):
                         self.read_to_gene_id_to_isoform_id[fields[0]][fields[4]] = []
                     self.read_to_gene_id_to_isoform_id[fields[0]][fields[4]].append(fields[3])
 
-    def get_classification(self, read, gene_id):
+    def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
         if read.query_name not in self.read_to_gene_id_to_isoform_id:
             return None
 
@@ -104,10 +105,14 @@ class BAMtagClassification(Classification):
     def __init__(self, tag):
         self.tag = tag
 
-    def get_classification(self, read, gene_id):
+    def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
         if not read.has_tag(self.tag):
             return None
-        return [get_read_tag(read, self.tag)]
-
+        tag_value = get_read_tag(read, self.tag)
+        if isinstance(tag_value, bytes):
+            tag_value = tag_value.decode("utf-8", errors="replace")
+        elif not isinstance(tag_value, str):
+            tag_value = str(tag_value)
+        return [tag_value]
 
 
