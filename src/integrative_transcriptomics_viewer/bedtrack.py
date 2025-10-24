@@ -206,14 +206,24 @@ class BEDTrack(IntervalTrack):
             yield interval
 
 
-    def draw_interval(self, renderer, interval):
+    def draw_interval(self, renderer, interval, extra_args=None):
+        if extra_args is None:
+            extra_args = {}
+        else:
+            extra_args = dict(extra_args)
+
+        if "label" not in extra_args:
+            extra_args["label"] = interval.label if interval.label is not None else interval.id
+        if "title" not in extra_args:
+            extra_args["title"] = interval.label if interval.label is not None else interval.id
+
         if interval.id not in self.intervals_to_rows:
             return
 
         interval_pixel_width = self.scale.relpixels(interval.tx.end-interval.tx.start)
         if interval_pixel_width < 12:
             # could probably improve on this
-            yield from super().draw_interval(renderer, interval)
+            yield from super().draw_interval(renderer, interval, extra_args=extra_args)
             return
 
         row = self.intervals_to_rows[interval.id]
@@ -222,9 +232,6 @@ class BEDTrack(IntervalTrack):
         midline = top + self.row_height/2 - self.thinnest_width/2
         
         color = self.color_fn(interval)
-        temp_label = interval.label
-        if interval.label is None:
-            temp_label = interval.id
         
         tx = interval.tx
 
@@ -295,8 +302,8 @@ class BEDTrack(IntervalTrack):
                     cur_start -= self.min_exon_width / 2
                     width = self.min_exon_width
 
-                yield from renderer.rect(cur_start, cur_y, width, cur_width, fill=color, 
-                                         **{"stroke":"none", "id":temp_label})
+                yield from renderer.rect(cur_start, cur_y, width, cur_width, fill=color,
+                                         **{"stroke":"none", "id":extra_args["label"], "title":extra_args["title"]})
 
 
         if interval.label is not None:
@@ -327,4 +334,3 @@ class VirtualBEDTrack(BEDTrack):
 
     def copy(self):
         return VirtualBEDTrack(transcripts=self.transcripts.copy(), name=self.name)
-

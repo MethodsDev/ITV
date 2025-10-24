@@ -1,15 +1,23 @@
+from typing import TYPE_CHECKING, cast
+
+
+if TYPE_CHECKING:
+    from integrative_transcriptomics_viewer.genomeview import Scale
+
+
 class Track:
     def __init__(self, name=None):
         self.name = name
-        self.scale = None
+        self.scale = cast("Scale", None)
         self.height = 100
         
     def layout(self, scale):
         self.scale = scale
         
     def render(self, renderer):
-        yield from renderer.rect(5, 5, self.scale.pixel_width-10, self.height-10)
-        yield from renderer.rect(35, 25, self.scale.pixel_width+20, self.height+20, fill="lightblue")
+        pixel_width = cast(float, self.scale.pixel_width)
+        yield from renderer.rect(5, 5, pixel_width - 10, self.height - 10)
+        yield from renderer.rect(35, 25, pixel_width + 20, self.height + 20, fill="lightblue")
         yield from renderer.line(25, 55, 400, 200)
         yield from renderer.line_with_arrows(250, 55, 400, 55)
         

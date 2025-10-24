@@ -7,6 +7,8 @@ from ipywidgets.embed import embed_minimal_html, dependency_state
 from integrative_transcriptomics_viewer.svg import Renderer, SVG
 from integrative_transcriptomics_viewer.export import SvgSplitter, _convertSVG_resvg_stdio
 
+from typing import cast
+
 
 class Document:
     doc_counter = 0
@@ -165,7 +167,7 @@ class ViewRow:
         self.width = width
         n_views = len(self.views)
 
-        self.each_width = {}
+        self.each_width: float = 0.0
         
         self.all_views_have_width = True
         for view in self.views:
@@ -184,7 +186,6 @@ class ViewRow:
             for view in self.views:
                 view.layout(view.pixel_width)
                 self.height = max(self.height, view.height)
-    
 
 
     def render(self, renderer):
@@ -209,7 +210,7 @@ class GenomeView:
 
         self.scale = Scale(chrom, start, end, strand, source)
 
-        self.pixel_width = None
+        self.pixel_width = cast(float, None)
         # self.pixel_height = None
 
         self.margin_y = 2  # 10
@@ -226,7 +227,7 @@ class GenomeView:
         
     def layout(self, width):
         self.pixel_width = width
-        self.scale.pixel_width = width
+        self.scale.set_pixel_width(width)
 
         self.height = 0
         for track in self.tracks:
@@ -259,6 +260,7 @@ class Scale:
 
         self.pixel_width = None
         self._param = None
+        self.bases_per_pixel = None
 
         self.source = source
         self._seq = None
@@ -275,17 +277,20 @@ class Scale:
         self._seq = None
 
         nt_width = self.end - self.start
-        
-        self.bases_per_pixel = nt_width / self.pixel_width
+        pixel_width = cast(float, self.pixel_width)
+        self.bases_per_pixel = nt_width / pixel_width
+
+    def set_pixel_width(self, pixel_width: float) -> None:
+        self.pixel_width = pixel_width
+        self._setup()
 
     def topixels(self, genomic_position):
         """
         Converts a genomic position to a pixel location in the current
         coordinate system.
         """
-        self._setup()
-
-        pos = (genomic_position - self.start) / float(self.bases_per_pixel)
+        bases_per_pixel = cast(float, self.bases_per_pixel)
+        pos = (genomic_position - self.start) / float(bases_per_pixel)
         return pos
 
     def relpixels(self, genomic_size):
@@ -293,9 +298,8 @@ class Scale:
         Takes a genomic length (ie, a number of basepairs) and converts
         it to a relative screen length in pixels.
         """
-        self._setup()
-
-        dist = genomic_size / float(self.bases_per_pixel)
+        bases_per_pixel = cast(float, self.bases_per_pixel)
+        dist = genomic_size / float(bases_per_pixel)
         return dist
     
     def get_seq(self, start=None, end=None, strand=None):
@@ -303,8 +307,6 @@ class Scale:
         Gets the nucleotide sequence of an interval. By default, returns the 
         sequence for the current genomic interval.
         """
-        self._setup()
-
         assert self.source is not None
         if strand is not None and strand != self.strand:
             raise Exception("ack")
@@ -323,4 +325,3 @@ class Scale:
         cur_seq = self._seq[start-self.start:end-self.start]
 
         return cur_seq
-

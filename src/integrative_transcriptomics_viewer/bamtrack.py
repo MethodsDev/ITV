@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import random
 
 from intervaltree import IntervalTree
+from typing import Optional, Callable, Any, List, Tuple, Mapping, Union, Iterable, Sequence, Sized, cast
 
 from integrative_transcriptomics_viewer.track import Track
 from integrative_transcriptomics_viewer.intervaltrack import Interval, IntervalTrack
@@ -45,12 +46,23 @@ def color_by_strand(interval):
     return "#8C8FCE"
 
 
+AlignmentOpener = Callable[[Any], Union[pysam.AlignmentFile, "VirtualBAM"]]
+
+
 class BAMTrack(IntervalTrack):
     def __init__(self, intervals, name=None):
         super().__init__(intervals, name=name)
-        self.max_depth = None
-        self.max_reads = None
+        self.max_depth: Optional[int] = None
+        self.max_reads: Optional[int] = None
         self.strand_specific = False
+
+    def __len__(self) -> int:
+        intervals = self.intervals
+        if intervals is self:
+            raise TypeError("Subclasses storing intervals on self must override __len__")
+        if isinstance(intervals, Sized):
+            return len(intervals)
+        raise TypeError("Intervals collection does not define __len__")
 
 
     def layout_interval(self, interval):
@@ -121,8 +133,13 @@ class BAMTrack(IntervalTrack):
             if len(self.rows) > self.max_depth:
                 self.rows = self.rows[:self.max_depth]    # layout all reads, then sample n elements from range(len(self.rows)), that will keep the sorting
         elif self.max_reads: # and len(self.intervals) > self.max_reads:  # max reads and it's more than the number of reads
-
-            self.intervals = reservoir_sampling(self.intervals, self.max_reads, len(self))
+            try:  # should be implemented by children classes
+                population_size = len(self)
+            except TypeError:
+                intervals = list(self.intervals)
+                self.intervals = intervals
+                population_size = len(intervals)
+            self.intervals = reservoir_sampling(self.intervals, self.max_reads, population_size)
 
             for interval in self.intervals:
                 self.layout_interval(interval)
@@ -158,7 +175,7 @@ class SingleEndBAMTrack(BAMTrack):
             and returns True (yes, display the read) or False (no, don't display). If this 
             function is not specified, by default all reads are shown.
     """
-    def __init__(self, bam_path, name=None, opener_fn=pysam.AlignmentFile):
+    def __init__(self, bam_path, name=None, opener_fn: AlignmentOpener = pysam.AlignmentFile):
         """
         Args:
             bam_path (str): path of the bam file to display
@@ -214,36 +231,42 @@ class SingleEndBAMTrack(BAMTrack):
 
     def __iter__(self):
         for i, read in enumerate(self.fetch()):
-            if read.is_unmapped: continue
-            if read.is_secondary and not self.include_secondary: continue
+            if read.is_unmapped:
+                continue
+            if read.is_secondary and not self.include_secondary:
+                continue
+
+            query_name = cast(str, read.query_name)  # make pylance happy without adding unnecessary if
+
             # is_reverse returns a flag that is the inverse of the strand bool so them being equal means they are opposed
             # we can use self.scale because iterator is only called after layout(self, scale) sets self.scale
-            if self.strand_specific and read.is_reverse == self.scale.strand: continue
-            id_ = read.query_name + str(i)
+            if self.strand_specific and read.is_reverse == self.scale.strand:
+                continue
+            id_ = query_name + str(i)
             interval = Interval(id_, self.scale.chrom, read.reference_start, read.reference_end, 
                                 not read.is_reverse)
             interval.read = read
             if self.draw_read_labels:
-                interval.label = read.query_name
+                interval.label = query_name
             yield interval
 
 
-    def __len__(self):
+    def __len__(self) -> int:
         contig = self.match_chrom_format(self.scale.chrom)
         start, end = self.scale.start, self.scale.end
         
         # with pysam.AlignmentFile(self.bam_path) as bam:
+        count_value: Optional[int]
         with self.opener_fn(self.bam_path) as bam:
             if self.include_read_fn:
-                return(bam.count(contig, start, end, read_callback=self.include_read_fn))
+                count_value = bam.count(contig, start, end, read_callback=self.include_read_fn)
             elif self.include_secondary:
                 def keep_supp(read):
-                    if read.is_unmapped:
-                        return False
-                    return True
-                return(bam.count(contig, start, end, read_callback=keep_supp))
+                    return not read.is_unmapped
+                count_value = bam.count(contig, start, end, read_callback=keep_supp)
             else:
-                return(bam.count(contig, start, end, read_callback="all"))
+                count_value = bam.count(contig, start, end, read_callback="all")
+        return 0 if count_value is None else count_value
 
 
     def match_chrom_format(self, contig):
@@ -273,12 +296,16 @@ class SingleEndBAMTrack(BAMTrack):
     #def layout_interval(self, interval):
     #    super().layout_interval(interval)
 
-    def draw_interval(self, renderer, interval):
+    def draw_interval(self, renderer, interval, extra_args=None):
         """
         Draw a read and then, if ``self.draw_mismatches`` is True, draw mismatches/indels 
         on top.
         """
-        extra_args = {"title": "read id: " + interval.read.query_name + "\nCIGAR: " + interval.read.cigarstring}
+        if extra_args is None:
+            extra_args = {}
+        else:
+            extra_args = dict(extra_args)
+        extra_args["title"] = "read id: " + interval.read.query_name + "\nCIGAR: " + interval.read.cigarstring
         yield from super().draw_interval(renderer, interval, extra_args=extra_args)
 
         if self.draw_mismatches:
@@ -466,7 +493,7 @@ class SingleEndBAMTrack(BAMTrack):
 @dataclass
 class PileupRead:
     alignment: pysam.AlignedSegment
-    query_position: int
+    query_position: Optional[int]
     is_del: bool
     is_refskip: bool
     indel: int
@@ -480,13 +507,13 @@ class PileupColumn:
         self.n = len(self.pileups)
 
 
-class VirtualBAM():
-    def __init__(self, reads, references):
-        self.reads = reads
-        self.references = references
-        self.is_indexed = False
-        self.reads_interval_tree = None
-        self.full_reads_interval_tree = None
+class VirtualBAM:
+    def __init__(self, reads: Iterable[pysam.AlignedSegment], references: Sequence[str]):
+        self.reads: List[pysam.AlignedSegment] = list(reads)
+        self.references: Sequence[str] = references
+        self.is_indexed: bool = False
+        self.reads_interval_tree: IntervalTree = IntervalTree()
+        self.full_reads_interval_tree: IntervalTree = IntervalTree()
 
         # toggle this to not return reads that only align around the region but not actually inside the region when fetching/piluping
         self.aligned_chunks_only = False
@@ -497,11 +524,16 @@ class VirtualBAM():
     def __enter__(self):
         return self
  
-    def __exit__(self, *args):
-        return
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
     
     def __len__(self):
         return len(self.reads)
+    
+    def get_reference_name(self, reference_id: int) -> str:
+        if reference_id is None or reference_id < 0 or reference_id >= len(self.references):
+            raise ValueError(f"invalid reference id: {reference_id}")
+        return self.references[reference_id]
     
     def count(self, contig=None, start=None, stop=None, read_callback=None):
         n = 0
@@ -521,11 +553,10 @@ class VirtualBAM():
     def index(self):
         if self.is_indexed:
             return
-        self.reads_interval_tree = IntervalTree()
-        self.full_reads_interval_tree = IntervalTree()
         for read in self.reads:
             interval_start = current_position = read.reference_start
-            for cigar_code, length in read.cigartuples:
+            cigartuples = cast(List[Tuple[int, int]], read.cigartuples)
+            for cigar_code, length in cigartuples:
                 if cigar_code in [0, 2, 7, 8]:  # M, D, =, X
                     current_position += length
                 elif cigar_code == 3:  # N: skipped region from the reference
@@ -574,7 +605,7 @@ class VirtualBAM():
                             yield interval.data
             else:
                 for read in self.reads:
-                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:
+                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:  # pyright: ignore[reportOperatorIssue]
                         yield read
 
 
@@ -595,7 +626,7 @@ class VirtualBAM():
                         yield interval.data
             else:
                 for read in self.reads:
-                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:
+                    if read.reference_name == contig and read.reference_start < stop and read.reference_end > start:  # pyright: ignore[reportOperatorIssue]
                         yield read
 
 
@@ -620,7 +651,8 @@ class VirtualBAM():
                 query_position = 0  # Initialize query_position to the start of the read
                 current_window_index = 0
     
-                for cigar_code, length in read.cigartuples:
+                cigartuples = cast(List[Tuple[int, int]], read.cigartuples)
+                for cigar_code, length in cigartuples:
                     overlap_length = 0
 
                     if ref_position >= window_end: # likely only when window end happens at the exact same position as a cigar change
@@ -679,7 +711,8 @@ class VirtualBAM():
                 i += 1
 
     def sample(self, max_read_count):
-        self.reads = reservoir_sampling(self.reads, max_read_count, len(self))
+        sampled_reads = reservoir_sampling(self.reads, max_read_count, len(self))
+        self.reads = list(sampled_reads)
 
 
 class PairedEndBAMTrack(SingleEndBAMTrack):
@@ -737,6 +770,7 @@ class PairedEndBAMTrack(SingleEndBAMTrack):
         row = self.intervals_to_rows[reads[0].query_name]
         
         pair_start = None
+        pair_end = None
         if len(reads) > 1:
             pair_start = reads[0].reference_end
             pair_end = reads[-1].reference_start
@@ -874,7 +908,7 @@ class GroupedBAMTrack(Track):
 class BAMCoverageTrack(GraphTrack):
     MAX_BINS = 10
 
-    def __init__(self, bam_path, name=None, opener_fn=pysam.AlignmentFile):
+    def __init__(self, bam_path, name=None, opener_fn: AlignmentOpener = pysam.AlignmentFile):
         if name is None and isinstance(name, str):
             name = os.path.basename(bam_path.split(".")[0])
         super().__init__(name=name)
@@ -883,16 +917,16 @@ class BAMCoverageTrack(GraphTrack):
         self.opener_fn = opener_fn
         with self.opener_fn(bam_path) as bam:
             self.bam_references = bam.references
-        self.include_secondary = False
-        self.include_read_fn = None
-        self.strand_specific = False  # limit coverage to a strand alone
-        self.stranded_coverage = False  # splits coverage according to strand
-        self.min_dist = 0
-        self.bin_size = 0
-        self.tag = None
-        self.tag_fn = None
-        self.priming_orientation = "3p"
-        self.cached_series = False
+        self.include_secondary: bool = False
+        self.include_read_fn: Optional[Callable[[pysam.AlignedSegment], bool]] = None
+        self.strand_specific: bool = False  # limit coverage to a strand alone
+        self.stranded_coverage: bool = False  # splits coverage according to strand
+        self.min_dist: int = 0
+        self.bin_size: int = 0
+        self.tag: Optional[str] = None
+        self.tag_fn: Optional[Callable[[Any], str]] = None
+        self.priming_orientation: str = "3p"
+        self.cached_series: bool = False
         
     def layout(self, scale):
         super().layout(scale)
@@ -1032,15 +1066,16 @@ class BAMCoverageTrack(GraphTrack):
     def add_tagged_coverage(self, scale):
         coverage = collections.defaultdict(collections.Counter)
         secondary_coverage = collections.defaultdict(collections.Counter)
+        tag = cast(str, self.tag)
 
         for read in self._get_reads(scale):
-            if not read.has_tag(self.tag):
+            if not read.has_tag(tag):
                 _coverage = secondary_coverage
                 tag_value = "unclassified"
             else:
                 _coverage = coverage
 
-                tag_value = read.get_tag(self.tag)
+                tag_value = read.get_tag(tag)
                 if self.tag_fn is not None:
                     tag_value = self.tag_fn(tag_value)
             
@@ -1080,24 +1115,30 @@ class BAMCoverageTrack(GraphTrack):
         cumulative coverage plot"""
 
         cumulative_coverage = np.zeros(scale.end - scale.start, dtype=int)
-        layers = []
-        secondary_layers = []
+        layers: List[Tuple[np.ndarray, np.ndarray]] = []
+        secondary_layers: List[Tuple[np.ndarray, np.ndarray]] = []
 
+        coverage_sets: List[Tuple[Mapping[Any, collections.Counter], List[Tuple[np.ndarray, np.ndarray]]]] = [
+            (coverage, layers)
+        ]
+        if secondary_coverage is not None:
+            coverage_sets.append((secondary_coverage, secondary_layers))
 
-        for _coverage, _layers in zip([coverage, secondary_coverage], [layers, secondary_layers]):
-            for i in sorted(_coverage):
-                if not _coverage[i]:
+        for coverage_dict, layer_list in coverage_sets:
+            for key in sorted(coverage_dict):
+                bin_counts = coverage_dict[key]
+                if not bin_counts:
                     continue
-                x, y = zip(*sorted(_coverage[i].items()))  # is this better than just for (x,y in coverage[i].items()){cumulative_coverage[x] += y} ?
-                x = np.array(x)
-                y = np.array(y)
-                cumulative_coverage[x] += y
+                x, y = zip(*sorted(bin_counts.items()))  # is this better than just for (x,y in coverage[i].items()){cumulative_coverage[x] += y} ?
+                x_arr = np.array(x)
+                y_arr = np.array(y)
+                cumulative_coverage[x_arr] += y_arr
 
                 # find edges of coverage track
                 ydiff = np.diff(cumulative_coverage) != 0
                 ix = np.hstack([True, ydiff[:-1], True])
 
-                _layers.append((scale.start + ix.nonzero()[0], cumulative_coverage[ix]))
+                layer_list.append((scale.start + ix.nonzero()[0], cumulative_coverage[ix]))
 
         # reverse(layers) because the tracks overlap, need shortest in front
         for i, (x, y) in enumerate(reversed(secondary_layers)):
@@ -1106,6 +1147,3 @@ class BAMCoverageTrack(GraphTrack):
         for i, (x, y) in enumerate(reversed(layers)):
             color = BINNED_COLORS[(len(layers) - 1 - i) % len(BINNED_COLORS)]
             self.add_series(x, y, color=color)
-
-
-

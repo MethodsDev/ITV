@@ -1,4 +1,5 @@
 from integrative_transcriptomics_viewer.track import Track
+from typing import Any, Optional
 # import random
 
 
@@ -9,6 +10,8 @@ class Interval:
         self.end = end
         self.id = id_
         self.label = label
+        self.read: Optional[Any] = None
+        self.tx: Optional[Any] = None
         
         #if isinstance(strand, bool):
         #    strand = {True:"+", False:"-"}[strand]
@@ -131,23 +134,16 @@ class IntervalTrack(Track):
         color = self.color_fn(interval)
 
         if "label" not in extra_args:
-            if interval.label is None:
-                extra_args["label"] = interval.id
-            else:
-                extra_args["label"] = interval.label
-
+            extra_args["label"] = interval.label if interval.label is not None else interval.id
         if "title" not in extra_args:
-            if interval.label is None:
-                extra_args["title"] = interval.id
-            else:
-                extra_args["title"] = interval.label
+            extra_args["title"] = interval.label if interval.label is not None else interval.id
 
         # yield from renderer.rect(start, top, end-start, self.row_height, fill=color, 
         #     **{"stroke":"none", "id":temp_label})
 
         if interval.strand is None:
             yield from renderer.rect(start, top, end-start, self.row_height, fill=color, 
-                **{"stroke":"none", "id":temp_label})
+                **{"stroke":"none", "id":extra_args["label"], "title":extra_args["title"]})
         else:
             arrow_width = min(self.row_height / 2, self.margin_x * 0.7, self.scale.relpixels(30))
             direction = "right" if interval.strand else "left"
