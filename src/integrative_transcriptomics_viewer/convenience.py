@@ -188,14 +188,14 @@ class Configuration:
         self.id_to_coordinates = {}
 
         if gtf_annotation:
-            self.index_gtf(gtf_annotation)
+            self._index_gtf(gtf_annotation)
 
 
-    def shallow_copy(self):
+    def _shallow_copy(self):
         return Configuration(self._fasta, None, bed_color_fn = self.bed_color_fn)
 
 
-    def index_gtf(self, gtf_annotation):
+    def _index_gtf(self, gtf_annotation):
         """
         Index features from a GTF to keep internally for easy querying. Stores Gene IDs/names, Transcript IDs/names, Exon IDs
 
@@ -286,7 +286,7 @@ class Configuration:
                             self.id_to_coordinates[exon_id] = Interval(entry.start, entry.end, entry.contig + entry.strand)
 
 
-    def update_bed(self, bed_annotation):
+    def _update_bed(self, bed_annotation):
         """
         Replace current bed annotations with those provided.
 
@@ -298,7 +298,7 @@ class Configuration:
         self.bed_annotation = bed_annotation
 
 
-    def get_bed_entries(self, interval):
+    def _get_bed_entries(self, interval):
         """
         Parameters
         ----------
@@ -325,14 +325,14 @@ class Configuration:
         return all_known_annotations
 
 
-    def add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False):
+    def _add_bed_track_to_view(self, view, bed_track, vertical_layout=True, strand_specific=False):
         bed_track.color_fn = self.bed_color_fn
         bed_track.vertical_layout = vertical_layout
         bed_track.strand_specific = strand_specific
         view.add_track(bed_track)
 
 
-    def add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names: Union[bool, Mapping[str, Optional[str]]] = True):
+    def _add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names: Union[bool, Mapping[str, Optional[str]]] = True):
         """
         Transparently adds BED tracks as needed to a view for all BEDs in this configuration,
         regardless of whether they reference a file or are in-memory, and of self.bed_annotation format.
@@ -351,7 +351,7 @@ class Configuration:
             if type(self.bed_annotation) is list:
                 for bed_path in self.bed_annotation:
                     bed_track = make_bed_track(bed_path)
-                    self.add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific)
+                    self._add_bed_track_to_view(view, bed_track, vertical_layout, strand_specific)
             elif type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
                     if use_names:
@@ -363,13 +363,13 @@ class Configuration:
                     # else:
                     #     view.add_track(itv.track.TrackLabel(""))
                     virtual_bed = make_bed_track(bed_path, name="")
-                    self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
+                    self._add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
             else:
                 virtual_bed = make_bed_track(self.bed_annotation)
-                self.add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
+                self._add_bed_track_to_view(view, virtual_bed, vertical_layout, strand_specific)
 
 
-    def build_view_row(self, start, end, chrom, strand, bams_dict,
+    def _build_view_row(self, start, end, chrom, strand, bams_dict,
                        padding_perc: float = 0.1,
                        add_track_label: Union[str, bool] = "auto",
                        add_reads_label: Union[str, bool] = "auto",
@@ -489,7 +489,7 @@ class Configuration:
                 gene_view.add_track(track.TrackLabel(add_track_label))
 
         if with_bed:
-            self.add_bed_tracks_to_view(gene_view,  strand_specific = strand_specific_bed, use_names = with_bed_label)
+            self._add_bed_tracks_to_view(gene_view,  strand_specific = strand_specific_bed, use_names = with_bed_label)
 
         if with_axis:
             gene_view.add_track(axis.Axis())
@@ -561,11 +561,11 @@ class Configuration:
         return row
 
 
-    def add_single_view_row_to_plot(self, doc,
+    def _add_single_view_row_to_plot(self, doc,
                                     interval = None, 
                                     data = None, **kwargs):
         """
-        Helper that calls self.build_view_row given a window to make a view for. Requires to provide either "interval" or "data".
+        Helper that calls self._build_view_row given a window to make a view for. Requires to provide either "interval" or "data".
 
         Parameters
         ----------
@@ -577,7 +577,7 @@ class Configuration:
         data : :class:`~collections.abc.Sequence`
             a Sequence (list, tuple, etc) in the format (any, Interval(start, end), chromosome, strand)
         **kwargs
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
         """
 
         if data is not None:
@@ -593,16 +593,16 @@ class Configuration:
         else:
             raise ValueError("Neither an Interval or data structure has been provided.")
 
-        row = self.build_view_row(start, end, chrom, strand, **kwargs)
+        row = self._build_view_row(start, end, chrom, strand, **kwargs)
         doc.elements.append(row)
         return doc
 
 
-    def add_multi_view_row_to_plot(self, doc,
+    def _add_multi_view_row_to_plot(self, doc,
                                    interval_list = None, 
                                    data_list = None, **kwargs):
         """
-        Helper that calls self.build_view_row given a list of windows to make views for. Requires to provide either "interval_list" or "data_list".
+        Helper that calls self._build_view_row given a list of windows to make views for. Requires to provide either "interval_list" or "data_list".
         
         Parameters
         ----------
@@ -613,7 +613,7 @@ class Configuration:
         data_list : list
             a list of lists in the format (any, :class:`~intervaltree.Interval` (start, end), chromosome, strand)
         **kwargs
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
         """
 
         row = genomeview.ViewRow("row")
@@ -625,7 +625,7 @@ class Configuration:
                 start = interval.begin
                 end  = interval.end
                 
-                self.build_view_row(start, end, chrom, strand,
+                self._build_view_row(start, end, chrom, strand,
                                          row = row,  **kwargs)
 
         elif data_list is not None:
@@ -635,7 +635,7 @@ class Configuration:
                 start = data[1].begin
                 end = data[1].end
                 
-                self.build_view_row(start, end, chrom, strand,
+                self._build_view_row(start, end, chrom, strand,
                                          row = row,  **kwargs)
 
         doc.elements.append(row)
@@ -655,7 +655,7 @@ class Configuration:
         view_width : int, optional
             width of the view in "pixels". (Default: 1600)
         **kwargs
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -663,7 +663,7 @@ class Configuration:
         """
 
         doc = genomeview.Document(view_width)
-        return self.add_single_view_row_to_plot(doc, **kwargs)
+        return self._add_single_view_row_to_plot(doc, **kwargs)
 
 
 
@@ -687,7 +687,7 @@ class Configuration:
         N_per_row : int, optional
             How many views to have per row. (Default: 1)
         **kwargs
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -698,20 +698,20 @@ class Configuration:
 
         if interval_list is not None:
             for i in range(0, len(interval_list), N_per_row):
-                doc = self.add_multi_view_row_to_plot(doc,
+                doc = self._add_multi_view_row_to_plot(doc,
                                                       interval_list = interval_list[i:i+N_per_row], 
                                                       data_list = None,
                                                       **kwargs)
 
         elif data_list is not None:
             for i in range(0, len(data_list), N_per_row):  
-                doc = self.add_multi_view_row_to_plot(doc,
+                doc = self._add_multi_view_row_to_plot(doc,
                                                       interval_list = None, 
                                                       data_list = data_list[i:i+N_per_row],
                                                       **kwargs)
         return doc
 
-    def get_feature_info(self, feature):
+    def _get_feature_info(self, feature):
         """
         Parameters
         ----------
@@ -744,7 +744,7 @@ class Configuration:
         return(feature_id, feature_type)
 
 
-    def get_interval_from_feature(self, feature):
+    def _get_interval_from_feature(self, feature):
         """
         Return the Interval with coordinates of a given feature.
 
@@ -763,11 +763,11 @@ class Configuration:
         elif isinstance(feature, tuple):
             (feature_id, feature_type) = feature
         else:
-            (feature_id, feature_type) = self.get_feature_info(feature)
+            (feature_id, feature_type) = self._get_feature_info(feature)
         return self.id_to_coordinates[feature_id]
 
 
-    def get_gene_name(self, feature):
+    def _get_gene_name(self, feature):
         """
         Return the name of the gene a given feature is part of.
 
@@ -784,7 +784,7 @@ class Configuration:
         if isinstance(feature, tuple):
             (feature_id, feature_type) = feature
         else:
-            (feature_id, feature_type) = self.get_feature_info(feature)
+            (feature_id, feature_type) = self._get_feature_info(feature)
 
         if feature_type == "transcript":
             if feature_id not in self.transcript_to_gene:
@@ -813,7 +813,7 @@ class Configuration:
         feature : str
             the feature id or name of the feature of interest.
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -823,7 +823,7 @@ class Configuration:
         if isinstance(feature, tuple):
             (feature_id, feature_type) = feature
         else:
-            (feature_id, feature_type) = self.get_feature_info(feature)
+            (feature_id, feature_type) = self._get_feature_info(feature)
         return self.plot_interval(interval = self.id_to_coordinates[feature_id], **kwargs)
 
     # plot_feature for a list in tabs
@@ -839,7 +839,7 @@ class Configuration:
         output_format : str, optional
             format of the views, "svg" or "png". (Default: "svg")
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -875,7 +875,7 @@ class Configuration:
         silence_error : boolean, optional
             Boolean to control if read not being found in one of the BAMs is reported (useful when providing a dict of BAMs but the read is only present in one of them). (Default: False)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -920,7 +920,7 @@ class Configuration:
         silence_error : boolean, optional
             control if read not being found in one of the BAMs is reported (useful when providing a dict of BAMs but the read is only present in one of them). (Default: False)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -956,12 +956,12 @@ class Configuration:
         return widgets.VBox(all_widgets)
 
 
-    def plot_exons_helper_get_info(self,
+    def _plot_exons_helper_get_info(self,
                                    feature,
                                    merge_exons = True,
                                    **kwargs):
 
-        (feature_id, feature_type) = self.get_feature_info(feature)
+        (feature_id, feature_type) = self._get_feature_info(feature)
         exons_list = None
 
         if feature_type == "exon":
@@ -981,14 +981,14 @@ class Configuration:
 
         return exons_list
 
-    def plot_exons_helper_make_doc(self,
+    def _plot_exons_helper_make_doc(self,
                                    intervals,
                                    view_width = 1600,
                                    N_per_row=99999,
                                    **kwargs):
         doc = genomeview.Document(view_width)
         for i in range(0, len(intervals), N_per_row):
-           self.make_intervals_row_through_virtual(doc, intervals[i:i+N_per_row], **kwargs)
+           self._make_intervals_row_through_virtual(doc, intervals[i:i+N_per_row], **kwargs)
         return doc
 
 
@@ -999,7 +999,7 @@ class Configuration:
                           padding_perc = 0.1,
                           **kwargs):
 
-        exons_list = self.plot_exons_helper_get_info(feature, merge_exons, **kwargs)
+        exons_list = self._plot_exons_helper_get_info(feature, merge_exons, **kwargs)
         if isinstance(exons_list, genomeview.Document):
             return exons_list
         # else res is an exons_list
@@ -1116,14 +1116,14 @@ class Configuration:
         as_widget : bool, optional
             Control if the result is returned as a dropdown selection menu ipywidget where each tab is an exon. (Default: False)
         **kwargs: 
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
         A new Document where only the windows of the exons of the provided feature are displayed. : :py:class:`integrative_transcriptomics_viewer.Document`
         """
 
-        # (feature_id, feature_type) = self.get_feature_info(feature)
+        # (feature_id, feature_type) = self._get_feature_info(feature)
         # exons_list = None
 
         # if feature_type == "exon":
@@ -1142,7 +1142,7 @@ class Configuration:
         #     print("feature_id = ", feature_id, " ; feature_type = ", feature_type)
         #     return
 
-        exons_list = self.plot_exons_helper_get_info(feature = feature,
+        exons_list = self._plot_exons_helper_get_info(feature = feature,
                                                      merge_exons = merge_exons,
                                                      **kwargs)
 
@@ -1151,7 +1151,7 @@ class Configuration:
             all_titles = []
             for exon in exons_list:
                 doc = genomeview.Document(view_width)
-                self.make_intervals_row_through_virtual(doc, [exon], **kwargs)
+                self._make_intervals_row_through_virtual(doc, [exon], **kwargs)
                 all_views.append(widgets.HTML(doc._repr_svg__()))
                 all_titles.append("Exon:: " + exon.data + " : " + str(exon.begin) + " - " + str(exon.end))
 
@@ -1163,7 +1163,7 @@ class Configuration:
         else:
             doc = genomeview.Document(view_width)
             for i in range(0, len(exons_list), N_per_row):
-               self.make_intervals_row_through_virtual(doc, exons_list[i:i+N_per_row], **kwargs)
+               self._make_intervals_row_through_virtual(doc, exons_list[i:i+N_per_row], **kwargs)
             return doc
 
 
@@ -1189,7 +1189,7 @@ class Configuration:
         as_widget : bool, optional
             Control if the result is returned as a dropdown selection menu ipywidget where each tab is a splice junction. (Default: True)
         **kwargs: 
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -1197,7 +1197,7 @@ class Configuration:
         """
 
 
-        (feature_id, feature_type) = self.get_feature_info(feature)
+        (feature_id, feature_type) = self._get_feature_info(feature)
         
         if feature_type == "exon":
             print("Error, feature type provided is an exon, hence there is no splice junction within it.")
@@ -1228,7 +1228,7 @@ class Configuration:
             all_titles = []
             for pair in exons_pairs:
                 doc = genomeview.Document(view_width)
-                self.make_intervals_row_through_virtual(doc, pair, **kwargs)
+                self._make_intervals_row_through_virtual(doc, pair, **kwargs)
                 all_views.append(widgets.HTML(doc._repr_svg__()))
                 all_titles.append("Splice junction btw: exon:: " + pair[0].data + ":" + str(pair[0].begin) + "-" + str(pair[0].end) + " and exon::" + pair[1].data + " : " + str(pair[1].begin) + " - " + str(pair[1].end))
 
@@ -1240,11 +1240,11 @@ class Configuration:
         else:
             doc = genomeview.Document(view_width)
             for pair in exons_pairs:
-               self.make_intervals_row_through_virtual(doc, pair, **kwargs)
+               self._make_intervals_row_through_virtual(doc, pair, **kwargs)
             return doc
      
 
-    def make_intervals_row_through_virtual(self,
+    def _make_intervals_row_through_virtual(self,
                                            doc,
                                            intervals_list,
                                            bams_dict,
@@ -1281,7 +1281,7 @@ class Configuration:
         with_bed_label : bool, optional
             Control if a label is displayed for each BED source. (Default: False)
         **kwargs: 
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
         """
 
         kwargs.pop("vertical_layout_reads", None)  # remove option if provided because it is enforced to True in this mode
@@ -1366,7 +1366,7 @@ class Configuration:
         new_bed_labels: Union[bool, Dict[str, Optional[str]]] = {}
         secondary_new_bed_labels: Union[bool, Dict[str, Optional[str]]] = {}
         if with_bed_label:
-            bed_config = self.shallow_copy()
+            bed_config = self._shallow_copy()
             seen_bed_entries = set()
             if type(self.bed_annotation) is dict:
                 for bed_name, bed_path in self.bed_annotation.items():
@@ -1387,7 +1387,7 @@ class Configuration:
                             new_bed_labels[new_key] = label
                             secondary_new_bed_labels[new_key] = "" if label else None
                             seen_bed_entries.add(bed_entry.name)
-                bed_config.update_bed(new_beds)
+                bed_config._update_bed(new_beds)
             elif type(self.bed_annotation) is list:
                 new_bed_labels = False
                 secondary_new_bed_labels = False
@@ -1402,7 +1402,7 @@ class Configuration:
                             new_beds[new_key] = bedtrack.VirtualBEDTrack(transcripts=[bed_entry], name=None)
                             seen_bed_entries.add(bed_entry.name)
                             i += 1
-                bed_config.update_bed(new_beds)
+                bed_config._update_bed(new_beds)
             else:  # just a string
                 new_bed_labels = False
                 secondary_new_bed_labels = False
@@ -1416,7 +1416,7 @@ class Configuration:
                         new_key = "__tmp_" + str(i)
                         new_beds[new_key] = bedtrack.VirtualBEDTrack(transcripts=[bed_entry], name=None)
                         i += 1
-                bed_config.update_bed(new_beds)
+                bed_config._update_bed(new_beds)
         else:
             new_bed_labels = False
 
@@ -1443,7 +1443,7 @@ class Configuration:
                 start = start - padding
                 end = end + padding
 
-            row = bed_config.build_view_row(start = start, 
+            row = bed_config._build_view_row(start = start, 
                                             end = end,
                                             chrom = chrom,
                                             strand = strand,
@@ -1485,7 +1485,7 @@ class Configuration:
         return doc
 
 
-    def get_gene_tab_title(self, feature):
+    def _get_gene_tab_title(self, feature):
         """
         Parameters
         ----------
@@ -1500,15 +1500,15 @@ class Configuration:
         if isinstance(feature, Interval):
             return feature.data + ":" + str(feature.begin) + "-" + str(feature.end)
 
-        (feature_id, feature_type) = self.get_feature_info(feature)
-        gene_name = self.get_gene_name((feature_id, feature_type))
+        (feature_id, feature_type) = self._get_feature_info(feature)
+        gene_name = self._get_gene_name((feature_id, feature_type))
         if gene_name != feature:
             feature = gene_name  # + "_" + feature
         return feature
         
 
     # custom bed dict accepts a dict with the same keys are bams_dict only
-    def organize_tab_section(self,
+    def _organize_tab_section(self,
                              bams_dict,
                              intervals,
                              tab_name,
@@ -1537,14 +1537,14 @@ class Configuration:
         expended : bool, optional
             Control if the subtabs should be expended by default within the tab. (Default: False)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
         A dict that stores the tab contents so it can be used with a template. : dict
         """
 
-        bed_config = self.shallow_copy()
+        bed_config = self._shallow_copy()
 
         if custom_bed_dict is not None:
             all_bed_entries = bedtrack.VirtualBEDTrack()
@@ -1552,16 +1552,16 @@ class Configuration:
                 for transcript in virtual_bed.transcripts:
                     if transcript not in all_bed_entries.transcripts:
                         all_bed_entries.transcripts.append(transcript)
-            bed_config.update_bed(all_bed_entries)
+            bed_config._update_bed(all_bed_entries)
         else:
-            bed_config.update_bed(self.bed_annotation)
+            bed_config._update_bed(self.bed_annotation)
 
 
         if len(intervals) == 1:
             plot_fn = getattr(type(self), "plot_interval")
             # intervals = intervals[0]  # plot_interval takes an Interval not a list of
         else:
-            plot_fn = getattr(type(self), "plot_exons_helper_make_doc")
+            plot_fn = getattr(type(self), "_plot_exons_helper_make_doc")
 
         # shared_static_svg = bed_config.plot_interval(bams_dict={},
 
@@ -1583,7 +1583,7 @@ class Configuration:
         shared_static_svg = plot_fn(bed_config, **fn_kwargs)._repr_svg__()
 
         # else:
-        #     shared_static_svg = bed_config.plot_exons_helper_make_doc(bams_dict={},
+        #     shared_static_svg = bed_config._plot_exons_helper_make_doc(bams_dict={},
         #                                                               exons_list=intervals,
         #                                                               with_bed = with_bed,
         #                                                               with_reads = False,
@@ -1601,7 +1601,7 @@ class Configuration:
             static_svg = ""
             resizable_svg = ""
             if custom_bed_dict is not None and key in custom_bed_dict:
-                bed_config.update_bed(custom_bed_dict[key])
+                bed_config._update_bed(custom_bed_dict[key])
                 new_kwargs = dict(
                     bams_dict={},
                     # intervals = intervals,
@@ -1680,7 +1680,7 @@ class Configuration:
 
 
 
-    def organize_tabs_by_feature(self,
+    def _organize_tabs_by_feature(self,
                                  bams_dict_dict,
                                  plot_type = "plot_feature",
                                  custom_bed_dict_dict = None,
@@ -1698,11 +1698,11 @@ class Configuration:
         custom_bed_dict_dict : dict of dict, optional
             Dict of Dict of (virtual) BED entries to use instead of the internally reference BED for the shared annotations for each tab and each BAM. For subkeys that are the same as the bams_dict_dict subkeys, the specific BED entries will be used for the matching BAM subtab.
         tab_title_fn : typing.Callable[[str], str], optional
-            Method to use to generate unique tab names when provided a feature_id. (Default: :meth:`get_gene_tab_title()`)
+            Method to use to generate unique tab names when provided a feature_id. (Default: :meth:`_get_gene_tab_title()`)
         expended : bool, optional
             Control if the subtabs should be expended by default within the tab. (Default: False)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -1710,7 +1710,7 @@ class Configuration:
         """
 
         if tab_title_fn is None:  # workaround because can't set a self.method as default parameter
-            tab_title_fn = self.get_gene_tab_title
+            tab_title_fn = self._get_gene_tab_title
 
         # try:
         #     plot_fn = getattr(self, plot_type)
@@ -1723,12 +1723,12 @@ class Configuration:
         for feature, bams_dict in bams_dict_dict.items():
             #feature_name = str(feature)
             # print(feature)
-            # (feature_id, feature_type) = self.get_feature_info(feature_name)
+            # (feature_id, feature_type) = self._get_feature_info(feature_name)
             # interval = self.id_to_coordinates[feature_id]
             if plot_type == "plot_feature" or plot_type == "plot_interval":
-                intervals = [self.get_interval_from_feature(feature)]
+                intervals = [self._get_interval_from_feature(feature)]
             elif plot_type == "plot_exons":
-                intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+                intervals = self._plot_exons_helper_get_info(feature = feature, **kwargs)
             else:
                 raise ValueError(
                     f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
@@ -1741,7 +1741,7 @@ class Configuration:
             tab_name = tab_title_fn(feature)
             tab_id = tab_name + "_" + str(time.time())
 
-            tabs.append(self.organize_tab_section(bams_dict = bams_dict,
+            tabs.append(self._organize_tab_section(bams_dict = bams_dict,
                                                   intervals = intervals, 
                                                   tab_name = tab_name,
                                                   tab_id = tab_id,
@@ -1751,7 +1751,7 @@ class Configuration:
         return tabs
 
 
-    def organize_tabs_by_classification(self,
+    def _organize_tabs_by_classification(self,
                                         bams_dict_dict,
                                         intervals,
                                         custom_bed_dict_dict = None,
@@ -1773,7 +1773,7 @@ class Configuration:
         expended : bool, optional
             Control if the subtabs should be expended by default within the tab. (Default: False)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -1792,7 +1792,7 @@ class Configuration:
 
             tab_name = tab_title_fn(classification)
             tab_id = tab_name + "_" + str(time.time())
-            tabs.append(self.organize_tab_section(bams_dict = bams_dict,
+            tabs.append(self._organize_tab_section(bams_dict = bams_dict,
                                                   intervals = intervals, 
                                                   tab_name = tab_name,
                                                   tab_id = tab_id,
@@ -1829,7 +1829,7 @@ class Configuration:
         cellbarcode_from : :py:class:`integrative_transcriptomics_viewer.CellBarcode`
             An instance of an implemented :py:class:`integrative_transcriptomics_viewer.CellBarcode` class with the :meth:integrative_transcriptomics_viewer.CellBarcode.get_barcode(self, read) method where read is a pysam.AlignmentSegment object and returns the cell barcode of the given read. (Default: :py:class:`integrative_transcriptomics_viewer.StandardCellBarcode()`)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -1843,11 +1843,11 @@ class Configuration:
 
             if cellbarcode_from is not None and cellbarcode_whitelist is not None:
 
-                # intervals = self.get_interval_from_feature(feature)  # use full gene even if plotting exons here, to not miss reads
+                # intervals = self._get_interval_from_feature(feature)  # use full gene even if plotting exons here, to not miss reads
                 if plot_type == "plot_feature" or plot_type == "plot_interval":
-                    intervals = [self.get_interval_from_feature(feature)]
+                    intervals = [self._get_interval_from_feature(feature)]
                 elif plot_type == "plot_exons":
-                    intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
+                    intervals = self._plot_exons_helper_get_info(feature = feature, **kwargs)
                 else:
                     raise ValueError(
                         f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
@@ -1868,13 +1868,13 @@ class Configuration:
                     virtual_bams_dict[feature][bam_name] = bam_file
 
 
-        tabs = self.organize_tabs_by_feature(virtual_bams_dict, **kwargs)
+        tabs = self._organize_tabs_by_feature(virtual_bams_dict, **kwargs)
 
         return templates.render_tab_titles(tabs, page_title)
 
 
     # classified_dict has the classification as keys
-    def match_classification_to_bed_entries(self, classifications, interval, annotation_matching):
+    def _match_classification_to_bed_entries(self, classifications, interval, annotation_matching):
         """
         Returns a virtual BED dict where keys are the classifications and entries are a list of all annotations that have been found to match according to the annotation_matching.match check.
         Classifications "ambiguous" and "unclassifed" are special classifications that are not checked.
@@ -1894,7 +1894,7 @@ class Configuration:
         """
 
         # parse known annotations
-        all_known_annotations = self.get_bed_entries(interval)
+        all_known_annotations = self._get_bed_entries(interval)
 
         virtual_bed_dict = {}
         for known_annotation, virtual_bed in all_known_annotations.items():
@@ -1915,7 +1915,7 @@ class Configuration:
 
     # returns two dict with same keys, one with dicts of split BAMs, and one with associated BED entries
     # here whitelist is just that, a whitelist, there is no split based on which dict key a barcode is found in
-    def split_bams_dict_by_classification(self,
+    def _split_bams_dict_by_classification(self,
                                           bams_dict,
                                           feature,
                                           classification_from,
@@ -1937,19 +1937,19 @@ class Configuration:
         cellbarcode_from : :py:class:`integrative_transcriptomics_viewer.CellBarcode`, optional
             An instance of an implemented :py:class:`integrative_transcriptomics_viewer.CellBarcode` class with the :meth:`integrative_transcriptomics_viewer.CellBarcode.get_barcode(self, read)` method where read is a :py:class:`pysam.AlignmentSegment` object and returns the cell barcode of the given read. (Default: :py:class:`integrative_transcriptomics_viewer.StandardCellBarcode()`)
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
         A tuple with a dict of virtual BAMs and a dict of virtual BEDs with matching keys, where provided input (virtual) BAMs are split according to classification. : tuple(dict, dict)
         """
         
-        (feature_id, feature_type) = self.get_feature_info(feature)
+        (feature_id, feature_type) = self._get_feature_info(feature)
         # if feature_type != "gene":
         #     print("feature provided is not a gene")
         #     return -1
 
-        interval = self.get_interval_from_feature((feature_id, feature_type))
+        interval = self._get_interval_from_feature((feature_id, feature_type))
 
         virtual_bams_dict = {}
         for bam_name, bam_file in bams_dict.items():
@@ -1961,7 +1961,7 @@ class Configuration:
                                                                      **kwargs))
 
         # parse known annotations
-        virtual_bed_dict = self.match_classification_to_bed_entries(virtual_bams_dict.keys(), interval, annotation_matching)
+        virtual_bed_dict = self._match_classification_to_bed_entries(virtual_bams_dict.keys(), interval, annotation_matching)
 
         return (virtual_bams_dict, virtual_bed_dict)
         
@@ -1992,7 +1992,7 @@ class Configuration:
         page_title : str
             HTML page title
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
@@ -2003,14 +2003,14 @@ class Configuration:
         virtual_beds_dict_dict = {}
         for feature in features_list:
             (virtual_bams_dict_dict[feature], virtual_beds_dict_dict[feature]) = \
-                            self.split_bams_dict_by_classification(bams_dict = bams_dict,
+                            self._split_bams_dict_by_classification(bams_dict = bams_dict,
                                                                    feature = feature,
                                                                    classification_from = classification_from,
                                                                    annotation_matching = annotation_matching,
                                                                    **kwargs
                                                                    )
 
-        tabs = self.organize_tabs_by_feature(bams_dict_dict = virtual_bams_dict_dict,
+        tabs = self._organize_tabs_by_feature(bams_dict_dict = virtual_bams_dict_dict,
                                              custom_bed_dict_dict = virtual_beds_dict_dict,
                                              **kwargs)
 
@@ -2046,14 +2046,14 @@ class Configuration:
         page_title : str
             HTML page title
         **kwargs:
-            anything that can be passed to :meth:`build_view_row()`
+            anything that can be passed to :meth:`_build_view_row()`
 
         Returns
         -------
         An HTML document : str
         """
 
-        (feature_id, feature_type) = self.get_feature_info(feature)
+        (feature_id, feature_type) = self._get_feature_info(feature)
         # if feature_type != "gene":
         #     print("feature provided is not a gene")
         #     return -1
@@ -2061,11 +2061,11 @@ class Configuration:
         interval = None # for region to get reads from
 
         if plot_type == "plot_feature" or plot_type == "plot_interval":
-            intervals = [self.get_interval_from_feature(feature)]
+            intervals = [self._get_interval_from_feature(feature)]
             interval = intervals[0]
         elif plot_type == "plot_exons":
-            intervals = self.plot_exons_helper_get_info(feature = feature, **kwargs)
-            interval = self.get_interval_from_feature((feature_id, feature_type))
+            intervals = self._plot_exons_helper_get_info(feature = feature, **kwargs)
+            interval = self._get_interval_from_feature((feature_id, feature_type))
         else:
             raise ValueError(
                 f"Unsupported plot_type {plot_type!r}; expected 'plot_feature', 'plot_interval', or 'plot_exons'"
@@ -2094,7 +2094,7 @@ class Configuration:
                 virtual_bams_dict_dict["all"][bam_name] = bam_file 
 
         # parse known annotations
-        virtual_bed_dict = self.match_classification_to_bed_entries(virtual_bams_dict_dict.keys(), interval, annotation_matching)
+        virtual_bed_dict = self._match_classification_to_bed_entries(virtual_bams_dict_dict.keys(), interval, annotation_matching)
 
         virtual_beds_dict_dict = {}
         for classification, virtual_bed in virtual_bed_dict.items():
@@ -2104,7 +2104,7 @@ class Configuration:
                 virtual_beds_dict_dict[classification]['all'] = virtual_bed
 
 
-        tabs = self.organize_tabs_by_classification(bams_dict_dict = virtual_bams_dict_dict,
+        tabs = self._organize_tabs_by_classification(bams_dict_dict = virtual_bams_dict_dict,
                                                     intervals = intervals,
                                                     custom_bed_dict_dict = virtual_beds_dict_dict,
                                                     **kwargs)
@@ -2138,3 +2138,279 @@ class Configuration:
 
 
 
+
+# === ITV OPTIONS SPEC: begin ===
+# Authoritative option spec for _build_view_row. Used for docs and stubs only.
+from dataclasses import dataclass, field
+from typing import Optional, Callable, Union, Literal, Any
+
+@dataclass(frozen=True)
+class BuildViewRowOptions:
+    """Authoritative spec for keyword options accepted by Configuration._build_view_row.
+    Field metadata["doc"] holds human descriptions. Types are canonical.
+    Defaults in docs are taken from the actual _build_view_row signature at import time.
+    """
+    padding_perc: float = field(default=0.1, metadata={"doc": "Padding around the interval as a fraction of window length."})
+    add_track_label: Union[str, bool] = field(default="auto", metadata={"doc": 'Whether to add a label on the track. "auto" chooses based on context.'})
+    add_reads_label: Union[str, bool] = field(default="auto", metadata={"doc": 'Whether to label the reads track. "auto" chooses based on context.'})
+    add_coverage_label: Union[str, bool] = field(default="auto", metadata={"doc": 'Whether to label the coverage track. "auto" chooses based on context.'})
+    with_reads: bool = field(default=True, metadata={"doc": "Draw read alignments."})
+    with_axis: bool = field(default=True, metadata={"doc": "Draw genomic position axis."})
+    with_coverage: bool = field(default=True, metadata={"doc": "Draw per-base or binned coverage track."})
+    with_bed: bool = field(default=True, metadata={"doc": "Draw BED annotations if available."})
+    with_bed_label: Union[bool, Mapping[str, Optional[str]]] = field(default=False, metadata={"doc": "Show a label for each BED source."})
+    coverage_bin_size: int = field(default=0, metadata={"doc": "Bin size for coverage. 0 disables binning."})
+    coverage_height: int = field(default=40, metadata={"doc": "Height in pixels for the coverage track."})
+    coverage_tag: str = field(default="", metadata={"doc": "Optional BAM tag name to aggregate by for coverage."})
+    coverage_tag_fn: Optional[Callable[[Any], str]] = field(default=None, metadata={"doc": "Function mapping a read to a tag string for coverage grouping."})
+    coverage_by_strand: bool = field(default=False, metadata={"doc": "If True, split coverage by read strand."})
+    priming_orientation: Literal["5p","3p"] = field(default="5p", metadata={"doc": 'Expected priming end. Guides binned coverage direction. One of "5p" or "3p".'})
+    strand_specific_bam: bool = field(default=False, metadata={"doc": "Treat BAM as strand-specific for read coloring."})
+    strand_specific_bed: bool = field(default=False, metadata={"doc": "Treat BED as strand-specific for annotation coloring."})
+    vertical_layout_reads: bool = field(default=False, metadata={"doc": "Display reads as one per line instead of pileup."})
+    max_read_depth: Optional[int] = field(default=None, metadata={"doc": "Cap displayed read depth to control view size."})
+    max_read_count: Optional[int] = field(default=100, metadata={"doc": "Cap number of reads drawn per region."})
+    include_secondary: bool = field(default=False, metadata={"doc": "Include secondary alignments."})
+    include_read_fn: Optional[Callable[[Any], bool]] = field(default=None, metadata={"doc": "Predicate to include a read in plotting and coverage."})
+    read_color_fn: Optional[Callable[[Any], str]] = field(default=None, metadata={"doc": "Function that returns a base color for a read interval."})
+    quick_consensus: bool = field(default=False, metadata={"doc": "Hide low-frequency SNPs for faster rendering."})
+    draw_clipping: bool = field(default=True, metadata={"doc": "Draw soft/hard clipping in read glyphs."})
+    row: Optional[Any] = field(default=None, metadata={"doc": "Existing itv.ViewRow to append to. Create a new one if None."})
+    view_width: Optional[int] = field(default=None, metadata={"doc": "Width of the view in pixels. Overrides global/default width."})
+    view_margin_y: Optional[int] = field(default=None, metadata={"doc": "Top and bottom margin in pixels for this row."})
+    fill_coverage: bool = field(default=True, metadata={"doc": "Fill the area under the coverage line."})
+    coverage_track_max_y: Optional[float] = field(default=None, metadata={"doc": "Clamp coverage y-axis to this maximum if set."})
+    draw_coverage_y_axis: bool = field(default=False, metadata={"doc": "Draw a y-axis for coverage values."})
+    tighter_track: bool = field(default=False, metadata={"doc": "Reduce vertical padding to make a tighter layout."})
+
+def _itv__augment_docs_from_spec():
+    import inspect as _inspect
+    import typing as _typing
+    import ast as _ast
+    import textwrap as _textwrap
+    from typing import Union, Literal
+
+    _sig = _inspect.signature(Configuration._build_view_row)
+    _defaults = {k: v.default for k, v in _sig.parameters.items() if v.default is not _inspect._empty}
+
+    def _pretty_type(t):
+        from collections.abc import Mapping as _MappingABC, Sequence as _SequenceABC, Callable as _CallableABC, Collection as _CollectionABC
+
+        org = _typing.get_origin(t)
+        args = _typing.get_args(t)
+
+        # Handle bare types and aliases early.
+        if t is _typing.Any:
+            return "any"
+        if t is None or t is type(None):
+            return "None"
+        if isinstance(t, type):
+            return t.__name__
+
+        if org is None:
+            return str(t).replace("typing.", "").replace("collections.abc.", "")
+
+        if org is Union:
+            parts = []
+            for a in args:
+                pretty = _pretty_type(a)
+                if pretty not in parts:
+                    parts.append(pretty)
+            return " or ".join(parts)
+
+        if org is Literal:
+            return "{" + ", ".join(repr(a) for a in args) + "}"
+
+        if org in (list, tuple, set, frozenset):
+            base = {
+                list: "list",
+                tuple: "tuple",
+                set: "set",
+                frozenset: "frozenset",
+            }[org]
+            if not args:
+                return base
+            inner = ", ".join(_pretty_type(a) for a in args)
+            if org is tuple and len(args) > 1:
+                return f"{base} of ({inner})"
+            return f"{base} of {inner}"
+
+        if org in (_MappingABC, dict):
+            if len(args) == 2:
+                key_t = _pretty_type(args[0])
+                val_t = _pretty_type(args[1])
+                return f"mapping of {key_t} to {val_t}"
+            return "mapping"
+
+        if org in (_SequenceABC, _CollectionABC):
+            if args:
+                inner = " or ".join(_pretty_type(a) for a in args)
+                return f"sequence of {inner}"
+            return "sequence"
+
+        if org is _CallableABC:
+            return "callable"
+
+        return str(org).replace("typing.", "").replace("collections.abc.", "")
+
+    fields = BuildViewRowOptions.__dataclass_fields__  # type: ignore[attr-defined]
+
+    def _subscript_key(node):
+        index_cls = getattr(_ast, "Index", None)
+        if index_cls is not None and isinstance(node, index_cls):
+            inner = getattr(node, "value", None)
+            if inner is not None:
+                return _subscript_key(inner)
+            return None
+        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, _ast.Str):  # pragma: no cover - py<3.8
+            return node.s
+        return None
+
+    class _KwargVisitor(_ast.NodeVisitor):
+        def __init__(self, kwarg_name):
+            self.kwarg_name = kwarg_name
+            self.consumed = set()
+            self.forwarded = set()
+
+        def visit_Call(self, node):
+            if isinstance(node.func, _ast.Attribute) and isinstance(node.func.value, _ast.Name):
+                if node.func.value.id == self.kwarg_name and node.func.attr == "pop":
+                    if node.args:
+                        key = _subscript_key(node.args[0])
+                        if key:
+                            self.consumed.add(key)
+            forwarded = any(
+                kw.arg is None and isinstance(kw.value, _ast.Name) and kw.value.id == self.kwarg_name
+                for kw in node.keywords
+            )
+            if forwarded:
+                attr = None
+                if isinstance(node.func, _ast.Attribute):
+                    attr = node.func.attr
+                elif isinstance(node.func, _ast.Name):
+                    attr = node.func.id
+                if attr:
+                    self.forwarded.add(attr)
+            self.generic_visit(node)
+
+        def visit_Delete(self, node):
+            for target in node.targets:
+                if isinstance(target, _ast.Subscript) and isinstance(target.value, _ast.Name):
+                    if target.value.id == self.kwarg_name:
+                        key = _subscript_key(target.slice)
+                        if key:
+                            self.consumed.add(key)
+            self.generic_visit(node)
+
+    _callable_members = {}
+    for attr_name, obj in Configuration.__dict__.items():
+        if isinstance(obj, (staticmethod, classmethod)):
+            func = obj.__func__
+        elif callable(obj):
+            func = obj
+        else:
+            continue
+        _callable_members[attr_name] = func
+
+    _exclude_cache = {}
+
+    def _excluded_for(func, attr_name, stack=None):
+        if stack is None:
+            stack = set()
+        if func in _exclude_cache:
+            return _exclude_cache[func]
+        if func in stack:
+            return set()
+        stack.add(func)
+        try:
+            sig = _inspect.signature(func)
+        except (TypeError, ValueError):
+            _exclude_cache[func] = set()
+            stack.remove(func)
+            return set()
+        exclude = {
+            name for name, param in sig.parameters.items()
+            if param.kind not in (_inspect.Parameter.VAR_KEYWORD, )
+        }
+        kwarg_name = None
+        for name, param in sig.parameters.items():
+            if param.kind == _inspect.Parameter.VAR_KEYWORD:
+                kwarg_name = name
+                break
+        consumed = set()
+        forwarded = set()
+        if kwarg_name:
+            try:
+                source = _inspect.getsource(func)
+            except (OSError, TypeError):
+                source = None
+            if source:
+                try:
+                    tree = _ast.parse(_textwrap.dedent(source))
+                except SyntaxError:
+                    tree = None
+                if tree is not None:
+                    visitor = _KwargVisitor(kwarg_name)
+                    visitor.visit(tree)
+                    consumed |= visitor.consumed
+                    forwarded |= visitor.forwarded
+        for target_name in forwarded:
+            if target_name == "_build_view_row":
+                continue
+            target_func = _callable_members.get(target_name)
+            if target_func is None:
+                continue
+            consumed |= _excluded_for(target_func, target_name, stack)
+        stack.remove(func)
+        exclude |= consumed
+        _exclude_cache[func] = exclude
+        return exclude
+
+    for attr_name, obj in Configuration.__dict__.items():
+        if not attr_name.startswith("plot_"):
+            continue
+        if isinstance(obj, (staticmethod, classmethod)):
+            func = obj.__func__
+        elif callable(obj):
+            func = obj
+        else:
+            continue
+        base = _inspect.getdoc(func) or ""
+        if "Accepted keyword options" in base:
+            continue
+        excluded = _excluded_for(func, attr_name)
+        lines = [
+            "Other Parameters",
+            "----------------",
+        ]
+        for name, f in fields.items():
+            if name in excluded:
+                continue
+            typ_s = _pretty_type(f.type)
+            default = _defaults.get(name, "...")
+            try:
+                default_repr = repr(default)
+            except Exception:
+                default_repr = "..."
+            desc = f.metadata.get("doc", "")
+            lines.append(f"{name} : {typ_s}, default: {default_repr}")
+            lines.append(f"    {desc}")
+
+        block = ""
+        if len(lines) > 2:
+            block = "\n".join(lines)
+
+        if block:
+            newdoc = f"{base.rstrip()}\n\n{block}\n" if base else block
+        else:
+            newdoc = base
+        # print(newdoc)
+        func.__doc__ = newdoc
+
+try:
+    _itv__augment_docs_from_spec()
+except Exception:
+    pass
+# === ITV OPTIONS SPEC: end ===

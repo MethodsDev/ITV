@@ -7,12 +7,12 @@ GenomeView Overview
 
    convenience_configuration
    details
-   convenience
    axis
    bams
    graphs
    rendering
    advanced_usage
+..    convenience 
 
 What is ITV?
 ===================

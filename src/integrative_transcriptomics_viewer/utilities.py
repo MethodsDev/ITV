@@ -75,7 +75,12 @@ def flatten(dictionary, separator='_'):
     return items
 
 
-def my_hook_compressed(filename, mode):
+from typing import BinaryIO, TextIO, Union
+
+Readable = Union[TextIO, BinaryIO]
+
+
+def my_hook_compressed(filename, mode) -> Readable:
     if 'b' not in mode:
         mode += 't'
     ext = os.path.splitext(filename)[1]

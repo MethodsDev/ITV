@@ -60,6 +60,7 @@ autodoc_default_options = {
 napoleon_google_docstring = True
 # napoleon_use_param = False
 napoleon_use_ivar = False
+napoleon_custom_sections = [('Other Parameters', 'params_style')]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -84,8 +85,7 @@ import sys
 from unittest.mock import MagicMock
 
 class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
+    def __getattr__(self, name):
             return MagicMock()
 
 MOCK_MODULES = ['numpy', 'pysam', 'pandas']
@@ -208,6 +208,3 @@ texinfo_documents = [
      author, 'integrative_transcriptomics_viewer', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
