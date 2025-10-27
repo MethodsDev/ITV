@@ -36,7 +36,7 @@ Integrative Transcriptomics Viewer (ITV) visualizes genomic data straight from p
 
     * Graphical data such as coverage tracks, wiggle files, etc
 
-The output is suitable for static visualization in screen or print formats. ITV is not designed to produce interactive visualizations, although the python interface, through jupyter, provides an easy interface to quickly create new visualizations.
+The output is suitable for static visualization in screen or print formats. ITV is not currently designed to produce interactive visualizations, although the python interface, through jupyter, provides an easy interface to quickly create new visualizations.
 
 
 Installation

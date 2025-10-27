@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping as MappingABC
 import gzip
 import math
 import os
@@ -8,7 +8,7 @@ import ipywidgets as widgets
 import re
 import time
 from functools import partial
-from typing import Optional, Union, Callable, Any, Dict, cast
+from typing import Optional, Union, Callable, Any, Dict, cast, Mapping as MappingType
 
 from intervaltree import Interval, IntervalTree
 
@@ -64,7 +64,7 @@ from integrative_transcriptomics_viewer.utilities import my_hook_compressed
 #     if axis_on_top:
 #         add_axis()
 
-#     if isinstance(file_paths, Mapping):
+#     if isinstance(file_paths, MappingABC):
 #         names = file_paths.keys()
 #         file_paths = [file_paths[name] for name in names]
 #     else:
@@ -332,7 +332,7 @@ class Configuration:
         view.add_track(bed_track)
 
 
-    def _add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names: Union[bool, Mapping[str, Optional[str]]] = True):
+    def _add_bed_tracks_to_view(self, view, vertical_layout=True, strand_specific=False, use_names: Union[bool, MappingType[str, Optional[str]]] = True):
         """
         Transparently adds BED tracks as needed to a view for all BEDs in this configuration,
         regardless of whether they reference a file or are in-memory, and of self.bed_annotation format.
@@ -378,7 +378,7 @@ class Configuration:
                        with_axis: bool = True,
                        with_coverage: bool = True,
                        with_bed: bool = True,
-                       with_bed_label: Union[bool, Mapping[str, Optional[str]]] = False,
+                       with_bed_label: Union[bool, MappingType[str, Optional[str]]] = False,
                        coverage_bin_size: int = 0,
                        coverage_height: int = 100,
                        coverage_tag: Optional[str] = None,
@@ -399,7 +399,7 @@ class Configuration:
                        view_width = None,
                        view_margin_y = None,
                        fill_coverage = True,
-                       coverage_track_max_y: Optional[Union[int, Mapping[str, int]]] = None,
+                       coverage_track_max_y: Optional[Union[int, MappingType[str, int]]] = None,
                        draw_coverage_y_axis = True,
                        tighter_track = False,
                        **kwargs):
@@ -520,7 +520,7 @@ class Configuration:
                 if fill_coverage:
                     coverage_track.fill_coverage = True
 
-                if isinstance(coverage_track_max_y, Mapping):
+                if isinstance(coverage_track_max_y, MappingABC):
                     if key in coverage_track_max_y:
                         coverage_track.max_y = coverage_track_max_y[key]
                 elif coverage_track_max_y is not None:
@@ -2158,7 +2158,7 @@ class BuildViewRowOptions:
     with_axis: bool = field(default=True, metadata={"doc": "Draw genomic position axis."})
     with_coverage: bool = field(default=True, metadata={"doc": "Draw per-base or binned coverage track."})
     with_bed: bool = field(default=True, metadata={"doc": "Draw BED annotations if available."})
-    with_bed_label: Union[bool, Mapping[str, Optional[str]]] = field(default=False, metadata={"doc": "Show a label for each BED source."})
+    with_bed_label: Union[bool, MappingType[str, Optional[str]]] = field(default=False, metadata={"doc": "Show a label for each BED source."})
     coverage_bin_size: int = field(default=0, metadata={"doc": "Bin size for coverage. 0 disables binning."})
     coverage_height: int = field(default=40, metadata={"doc": "Height in pixels for the coverage track."})
     coverage_tag: str = field(default="", metadata={"doc": "Optional BAM tag name to aggregate by for coverage."})
@@ -2179,9 +2179,129 @@ class BuildViewRowOptions:
     view_width: Optional[int] = field(default=None, metadata={"doc": "Width of the view in pixels. Overrides global/default width."})
     view_margin_y: Optional[int] = field(default=None, metadata={"doc": "Top and bottom margin in pixels for this row."})
     fill_coverage: bool = field(default=True, metadata={"doc": "Fill the area under the coverage line."})
-    coverage_track_max_y: Optional[float] = field(default=None, metadata={"doc": "Clamp coverage y-axis to this maximum if set."})
+    coverage_track_max_y: Optional[Union[int, MappingType[str, int]]] = field(default=None, metadata={"doc": "Clamp coverage y-axis to this maximum if set."})
     draw_coverage_y_axis: bool = field(default=False, metadata={"doc": "Draw a y-axis for coverage values."})
     tighter_track: bool = field(default=False, metadata={"doc": "Reduce vertical padding to make a tighter layout."})
+
+def _itv__compute_option_exclusions():
+    import inspect as _inspect
+    import ast as _ast
+    import textwrap as _textwrap
+
+    def _subscript_key(node):
+        index_cls = getattr(_ast, "Index", None)
+        if index_cls is not None and isinstance(node, index_cls):
+            inner = getattr(node, "value", None)
+            if inner is not None:
+                return _subscript_key(inner)
+            return None
+        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, _ast.Str):  # pragma: no cover - py<3.8
+            return node.s
+        return None
+
+    class _KwargVisitor(_ast.NodeVisitor):
+        def __init__(self, kwarg_name):
+            self.kwarg_name = kwarg_name
+            self.consumed = set()
+            self.forwarded = set()
+
+        def visit_Call(self, node):
+            if isinstance(node.func, _ast.Attribute) and isinstance(node.func.value, _ast.Name):
+                if node.func.value.id == self.kwarg_name and node.func.attr == "pop":
+                    if node.args:
+                        key = _subscript_key(node.args[0])
+                        if key:
+                            self.consumed.add(key)
+            forwarded = any(
+                kw.arg is None and isinstance(kw.value, _ast.Name) and kw.value.id == self.kwarg_name
+                for kw in node.keywords
+            )
+            if forwarded:
+                attr = None
+                if isinstance(node.func, _ast.Attribute):
+                    attr = node.func.attr
+                elif isinstance(node.func, _ast.Name):
+                    attr = node.func.id
+                if attr:
+                    self.forwarded.add(attr)
+            self.generic_visit(node)
+
+        def visit_Delete(self, node):
+            for target in node.targets:
+                if isinstance(target, _ast.Subscript) and isinstance(target.value, _ast.Name):
+                    if target.value.id == self.kwarg_name:
+                        key = _subscript_key(target.slice)
+                        if key:
+                            self.consumed.add(key)
+            self.generic_visit(node)
+
+    callable_members = {}
+    for attr_name, obj in Configuration.__dict__.items():
+        if isinstance(obj, (staticmethod, classmethod)):
+            func = obj.__func__
+        elif callable(obj):
+            func = obj
+        else:
+            continue
+        callable_members[attr_name] = func
+
+    _exclude_cache = {}
+
+    def _excluded_for(func, attr_name, stack=None):
+        if stack is None:
+            stack = set()
+        if func in _exclude_cache:
+            return _exclude_cache[func]
+        if func in stack:
+            return set()
+        stack.add(func)
+        try:
+            sig = _inspect.signature(func)
+        except (TypeError, ValueError):
+            _exclude_cache[func] = set()
+            stack.remove(func)
+            return set()
+        exclude = {
+            name for name, param in sig.parameters.items()
+            if param.kind not in (_inspect.Parameter.VAR_KEYWORD,)
+        }
+        kwarg_name = None
+        for name, param in sig.parameters.items():
+            if param.kind == _inspect.Parameter.VAR_KEYWORD:
+                kwarg_name = name
+                break
+        consumed = set()
+        forwarded = set()
+        if kwarg_name:
+            try:
+                source = _inspect.getsource(func)
+            except (OSError, TypeError):
+                source = None
+            if source:
+                try:
+                    tree = _ast.parse(_textwrap.dedent(source))
+                except SyntaxError:
+                    tree = None
+                if tree is not None:
+                    visitor = _KwargVisitor(kwarg_name)
+                    visitor.visit(tree)
+                    consumed |= visitor.consumed
+                    forwarded |= visitor.forwarded
+        for target_name in forwarded:
+            if target_name == "_build_view_row":
+                continue
+            target_func = callable_members.get(target_name)
+            if target_func is None:
+                continue
+            consumed |= _excluded_for(target_func, target_name, stack)
+        stack.remove(func)
+        exclude |= consumed
+        _exclude_cache[func] = exclude
+        return exclude
+
+    return {name: _excluded_for(func, name) for name, func in callable_members.items()}
 
 def _itv__augment_docs_from_spec():
     import inspect as _inspect
@@ -2254,119 +2374,7 @@ def _itv__augment_docs_from_spec():
         return str(org).replace("typing.", "").replace("collections.abc.", "")
 
     fields = BuildViewRowOptions.__dataclass_fields__  # type: ignore[attr-defined]
-
-    def _subscript_key(node):
-        index_cls = getattr(_ast, "Index", None)
-        if index_cls is not None and isinstance(node, index_cls):
-            inner = getattr(node, "value", None)
-            if inner is not None:
-                return _subscript_key(inner)
-            return None
-        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
-            return node.value
-        if isinstance(node, _ast.Str):  # pragma: no cover - py<3.8
-            return node.s
-        return None
-
-    class _KwargVisitor(_ast.NodeVisitor):
-        def __init__(self, kwarg_name):
-            self.kwarg_name = kwarg_name
-            self.consumed = set()
-            self.forwarded = set()
-
-        def visit_Call(self, node):
-            if isinstance(node.func, _ast.Attribute) and isinstance(node.func.value, _ast.Name):
-                if node.func.value.id == self.kwarg_name and node.func.attr == "pop":
-                    if node.args:
-                        key = _subscript_key(node.args[0])
-                        if key:
-                            self.consumed.add(key)
-            forwarded = any(
-                kw.arg is None and isinstance(kw.value, _ast.Name) and kw.value.id == self.kwarg_name
-                for kw in node.keywords
-            )
-            if forwarded:
-                attr = None
-                if isinstance(node.func, _ast.Attribute):
-                    attr = node.func.attr
-                elif isinstance(node.func, _ast.Name):
-                    attr = node.func.id
-                if attr:
-                    self.forwarded.add(attr)
-            self.generic_visit(node)
-
-        def visit_Delete(self, node):
-            for target in node.targets:
-                if isinstance(target, _ast.Subscript) and isinstance(target.value, _ast.Name):
-                    if target.value.id == self.kwarg_name:
-                        key = _subscript_key(target.slice)
-                        if key:
-                            self.consumed.add(key)
-            self.generic_visit(node)
-
-    _callable_members = {}
-    for attr_name, obj in Configuration.__dict__.items():
-        if isinstance(obj, (staticmethod, classmethod)):
-            func = obj.__func__
-        elif callable(obj):
-            func = obj
-        else:
-            continue
-        _callable_members[attr_name] = func
-
-    _exclude_cache = {}
-
-    def _excluded_for(func, attr_name, stack=None):
-        if stack is None:
-            stack = set()
-        if func in _exclude_cache:
-            return _exclude_cache[func]
-        if func in stack:
-            return set()
-        stack.add(func)
-        try:
-            sig = _inspect.signature(func)
-        except (TypeError, ValueError):
-            _exclude_cache[func] = set()
-            stack.remove(func)
-            return set()
-        exclude = {
-            name for name, param in sig.parameters.items()
-            if param.kind not in (_inspect.Parameter.VAR_KEYWORD, )
-        }
-        kwarg_name = None
-        for name, param in sig.parameters.items():
-            if param.kind == _inspect.Parameter.VAR_KEYWORD:
-                kwarg_name = name
-                break
-        consumed = set()
-        forwarded = set()
-        if kwarg_name:
-            try:
-                source = _inspect.getsource(func)
-            except (OSError, TypeError):
-                source = None
-            if source:
-                try:
-                    tree = _ast.parse(_textwrap.dedent(source))
-                except SyntaxError:
-                    tree = None
-                if tree is not None:
-                    visitor = _KwargVisitor(kwarg_name)
-                    visitor.visit(tree)
-                    consumed |= visitor.consumed
-                    forwarded |= visitor.forwarded
-        for target_name in forwarded:
-            if target_name == "_build_view_row":
-                continue
-            target_func = _callable_members.get(target_name)
-            if target_func is None:
-                continue
-            consumed |= _excluded_for(target_func, target_name, stack)
-        stack.remove(func)
-        exclude |= consumed
-        _exclude_cache[func] = exclude
-        return exclude
+    excluded_map = _itv__compute_option_exclusions()
 
     for attr_name, obj in Configuration.__dict__.items():
         if not attr_name.startswith("plot_"):
@@ -2380,7 +2388,7 @@ def _itv__augment_docs_from_spec():
         base = _inspect.getdoc(func) or ""
         if "Accepted keyword options" in base:
             continue
-        excluded = _excluded_for(func, attr_name)
+        excluded = excluded_map.get(attr_name, set())
         lines = [
             "Other Parameters",
             "----------------",
@@ -2409,8 +2417,101 @@ def _itv__augment_docs_from_spec():
         # print(newdoc)
         func.__doc__ = newdoc
 
+def _itv__install_signatures_from_spec():
+    import inspect as _inspect
+    import dataclasses as _dataclasses
+
+    row_sig = _inspect.signature(Configuration._build_view_row)
+    row_params = row_sig.parameters
+
+    option_specs = []
+    for field in _dataclasses.fields(BuildViewRowOptions):
+        default = _inspect._empty
+        if field.name in row_params and row_params[field.name].default is not _inspect._empty:
+            default = row_params[field.name].default
+        elif field.default is not _dataclasses.MISSING:
+            default = field.default
+
+        annotation = field.type
+        if field.name in row_params and row_params[field.name].annotation is not _inspect._empty:
+            annotation = row_params[field.name].annotation
+        option_specs.append((field.name, default, annotation))
+
+    excluded_map = _itv__compute_option_exclusions()
+
+    for attr_name, func in Configuration.__dict__.items():
+        if attr_name.startswith("_"):
+            continue
+        if not _inspect.isfunction(func):
+            continue
+
+        sig = _inspect.signature(func)
+
+        kwargs_param = None
+        params = []
+        existing_names = set()
+
+        for param in sig.parameters.values():
+            if param.kind == _inspect.Parameter.VAR_KEYWORD:
+                kwargs_param = param
+                continue
+            params.append(param)
+            existing_names.add(param.name)
+
+        if kwargs_param is None:
+            continue
+
+        if "bams_dict" not in existing_names:
+            params.append(
+                _inspect.Parameter(
+                    "bams_dict",
+                    _inspect.Parameter.KEYWORD_ONLY,
+                    annotation=MappingType[str, Any],
+                    default=_inspect._empty,
+                )
+            )
+            existing_names.add("bams_dict")
+
+        excluded = excluded_map.get(attr_name, set())
+
+        for name, default, annotation in option_specs:
+            if name in existing_names:
+                continue
+            if name in excluded:
+                continue
+            params.append(
+                _inspect.Parameter(
+                    name,
+                    _inspect.Parameter.KEYWORD_ONLY,
+                    default=default,
+                    annotation=annotation,
+                )
+            )
+            existing_names.add(name)
+
+        if kwargs_param is not None:
+            params.append(kwargs_param.replace(annotation=Any))
+        else:
+            params.append(
+                _inspect.Parameter(
+                    "kwargs",
+                    _inspect.Parameter.VAR_KEYWORD,
+                    annotation=Any,
+                )
+            )
+
+        func.__signature__ = _inspect.Signature(
+            params,
+            return_annotation=sig.return_annotation,
+        )
+
 try:
     _itv__augment_docs_from_spec()
+except Exception:
+    pass
+
+try:
+    _itv__install_signatures_from_spec()
 except Exception:
     pass
 # === ITV OPTIONS SPEC: end ===
