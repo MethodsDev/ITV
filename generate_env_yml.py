@@ -21,7 +21,7 @@ dependencies:
   - pip
   - git
   - sphinx-toolbox
-  - sphinx-rtd-theme
+  - pydata-sphinx-theme
   - jupyterlab
   - pysam
   - cython

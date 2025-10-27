@@ -10,9 +10,13 @@ Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store
    :caption: Reference helpers
 
    convenience_configuration/configuration
+   convenience_configuration/plotting
    cell_barcode
    classification
 
+
+.. rubric:: Plotting
+   A collection of methods to easily generate views data aligned to a given :class:`~integrative_transcriptomics_viewer.Configuration`.
 
 .. rubric:: Cell barcode
 
