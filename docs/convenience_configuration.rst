@@ -4,6 +4,15 @@ ITV interface
 
 Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store information related to a reference to allow easily plotting a number of standard views/reports for the BAMs provided. The :doc:`Configuration documentation <convenience_configuration/configuration>` covers constructor arguments and links to one-page references for each plotting helper.
 
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+   :caption: Reference helpers
+
+   convenience_configuration/configuration
+   cell_barcode
+   classification
+
 
 .. rubric:: Cell barcode
 

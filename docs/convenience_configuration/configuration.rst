@@ -10,6 +10,7 @@ Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store
    :maxdepth: 1
    :caption: Plotting methods
 
+   build_view_row
    plot_interval
    plot_intervals
    plot_feature
