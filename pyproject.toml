@@ -27,7 +27,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-integrative_transcriptomics_viewer = ["templates/*.html"]
+integrative_transcriptomics_viewer = ["templates/*.html", "*.pyi", "py.typed"]
 
 
 [tool.setuptools.dynamic]
