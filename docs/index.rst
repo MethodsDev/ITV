@@ -1,20 +1,12 @@
-GenomeView Overview
-===================
-
-.. toctree::
-   :maxdepth: 2
-   :titlesonly:
-   :caption: ITV API
-
-   convenience_configuration
-   convenience_configuration/configuration
-   cell_barcode
-   classification
+ITV Documentation
+=================
 
 .. toctree::
    :maxdepth: 1
-   :caption: Additional guides
+   :titlesonly:
 
+   usage
+   convenience_configuration
    advanced_usage
 
 
@@ -56,28 +48,4 @@ Or to install the bleeding edge from github:
 
 To display `bigWig <https://genome.ucsc.edu/goldenpath/help/bigWig.html>`_ graphical tracks, the `pyBigWig <https://github.com/deeptools/pyBigWig>`_ python package must also be installed, eg ``pip install pyBigWig``.
 
-Quick Start
-===========
-
-.. image:: images/overview.svg
-
-To produce the visualization above, a single line of code suffices (in addition to information about the locations of the data and coordinates to be visualized)::
-
-    dataset_paths = ["/path/to/pacbio_single_end_dataset.bam",
-                     "/path/to/illumina_paired_end_dataset.bam",
-                     "/path/to/genes.bed.gz"]
-    reference = "/path/to/reference.fa"
-    
-    chrom = "chr1"
-    start = 224368899
-    end =   224398899
-
-    doc = integrative_transcriptomics_viewer.visualize_data(dataset_paths, chrom, start, end, reference)
-
-If you are using jupyter notebook or jupyterlab, documents can be displayed simply by placing the name of the document on the last line of a cell by itself and running the cell.
-
-To render the document to file, use the simple :py:func:`integrative_transcriptomics_viewer.save()` command::
-
-    integrative_transcriptomics_viewer.save(doc, "/path/to/output.svg")   # or .png/.pdf
-
-For more details on setting up your own document with fine-grained control over how the tracks are created and visualized, see the :ref:`next section <details>`.
+For a hands-on walkthrough that mirrors the demo notebook shipped with the repository, head to :doc:`usage`.
