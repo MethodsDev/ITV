@@ -2,17 +2,21 @@ GenomeView Overview
 ===================
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Contents:
+   :maxdepth: 2
+   :titlesonly:
+   :caption: ITV API
 
    convenience_configuration
-   details
-   axis
-   bams
-   graphs
-   rendering
+   convenience_configuration/configuration
+   cell_barcode
+   classification
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Additional guides
+
    advanced_usage
-..    convenience 
+
 
 What is ITV?
 ===================

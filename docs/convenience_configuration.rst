@@ -1,41 +1,15 @@
-MDL helpers for generating views and reports
+ITV interface
 ============================================
-.. contents:: :local:
+.. rubric:: Reference specific configuration
+
+Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store information related to a reference to allow easily plotting a number of standard views/reports for the BAMs provided. The :doc:`Configuration documentation <convenience_configuration/configuration>` covers constructor arguments and links to one-page references for each plotting helper.
 
 
-===
-API
-===
+.. rubric:: Cell barcode
 
-Reference specific configuration
-================================
-
-Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store information related to a reference to allow easily plotting a number of standard views/reports for the BAMs provided.
-
-.. autoclass:: integrative_transcriptomics_viewer.Configuration
-   :members:
+See :doc:`cell_barcode` for the abstract :class:`~integrative_transcriptomics_viewer.cellbarcode.CellBarcode` API and implementations covering common barcode encodings.
 
 
-Cell Barcode
-============
+.. rubric:: Read classification
 
-Implementations for obtaining cell barcode information for the most common encodings.
-
-.. autoclass:: integrative_transcriptomics_viewer.HaasStyleCellBarcode
-   :members:
-
-.. autoclass:: integrative_transcriptomics_viewer.ONTCellBarcode
-   :members:
-
-.. autoclass:: integrative_transcriptomics_viewer.StandardCellBarcode
-   :members:
-
-
-Read Classification
-===================
-
-Implementation for obtaining the classification of a read for the most common encodings.
-
-.. autoclass:: integrative_transcriptomics_viewer.IsoQuantClassification
-   :members:
-
+Read-level classification helpers are documented on :doc:`classification`, which covers the abstract :class:`~integrative_transcriptomics_viewer.classification.Classification` interface and its built-in implementations.

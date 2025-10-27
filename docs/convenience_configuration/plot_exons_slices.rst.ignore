@@ -1,0 +1,6 @@
+Configuration.plot_exons_slices
+================================
+
+.. currentmodule:: integrative_transcriptomics_viewer
+
+.. automethod:: Configuration.plot_exons_slices
