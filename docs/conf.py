@@ -50,7 +50,6 @@ intersphinx_mapping = {
 # inspect_main(['https://ipywidgets.readthedocs.io/en/latest/objects.inv'])
 
 autodoc_default_options = {
-   'members': True,
     # Does now show base classes otherwise... why such bad defaults?
     # But with this it does show useless bases like `object`. What is one to do?
     'show-inheritance': True,

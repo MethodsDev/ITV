@@ -992,7 +992,7 @@ class Configuration:
         return doc
 
 
-    def plot_exons_slices(self, 
+    def _plot_exons_slices(self, 
                           feature,
                           merge_exons = True, 
                           normalize_interval_width = False,
