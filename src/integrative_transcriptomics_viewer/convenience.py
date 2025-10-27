@@ -1885,8 +1885,10 @@ class Configuration:
             A list of the classifications to find the annotations for, "ambiguous" and "unclassified" are not checked against and will not exist as keys in the returned dict.
         interval : :class:`intervaltree.Interval`
             Interval to fetch the internal BED entries within to then try to match.
-        annotation_matching : py:class:`integrative_transcriptomics_viewer.AnnotationMatching`
-            An instance of an implemented AnnotationMatching class with the match(self, query_annotation, target_annotation) method where the query_annotation will be an entry of classifications and target_annotation is the name of a BED entry.
+        annotation_matching : AnnotationMatching
+            Instance of :class:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching`
+            that provides a :meth:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching.match`
+            implementation. The query annotation corresponds to a classification label and the target annotation to a BED entry name.
         
         Returns
         -------
@@ -1928,14 +1930,20 @@ class Configuration:
             Dict of (virtual) BAMs to display the reads from.
         gene : str
             The gene id or name to use the coordinates of for the window to fetch reads over.
-        classification_from : :py:class:`integrative_transcriptomics_viewer.Classification`
-            An instance of an implemented py:class:`integrative_transcriptomics_viewer.Classification` class with the :meth:integrative_transcriptomics_viewer.Classification.get_classification(self, read, gene_id) method where read is a pysam.AlignmentSegment object, gene_id the id of the provided gene, and which returns the classification of the given read.
-        annotation_matching : :py:class:`integrative_transcriptomics_viewer.AnnotationMatching`
-            An instance of an implemented py:class:`integrative_transcriptomics_viewer.AnnotationMatching` class with the :meth:`integrative_transcriptomics_viewer.AnnotationMatching.match(self, query_annotation, target_annotation)` method where the query_annotation will be an entry of classifications and target_annotation is the name of a BED entry.
+        classification_from : Classification
+            Instance of :class:`~integrative_transcriptomics_viewer.classification.Classification`.
+            Must implement :meth:`~integrative_transcriptomics_viewer.classification.Classification.get_classification`.
+        annotation_matching : AnnotationMatching
+            Instance of :class:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching`
+            used to pair classification labels with BED annotation names through
+            :meth:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching.match`.
         cellbarcode_whitelist : dict of list, or list, optional
             A dict of lists or list with whitelisted cell barcodes. Here the whitelist is not used to split according to keys in the dict, it is purely a whitelist. If this is provided, a cellbarcode_from needs to also be provided. (Default: None)
-        cellbarcode_from : :py:class:`integrative_transcriptomics_viewer.CellBarcode`, optional
-            An instance of an implemented :py:class:`integrative_transcriptomics_viewer.CellBarcode` class with the :meth:`integrative_transcriptomics_viewer.CellBarcode.get_barcode(self, read)` method where read is a :py:class:`pysam.AlignmentSegment` object and returns the cell barcode of the given read. (Default: :py:class:`integrative_transcriptomics_viewer.StandardCellBarcode()`)
+        cellbarcode_from : CellBarcode, optional
+            Instance of :class:`~integrative_transcriptomics_viewer.cellbarcode.CellBarcode`
+            whose :meth:`~integrative_transcriptomics_viewer.cellbarcode.CellBarcode.get_barcode`
+            method extracts the cell barcode from a :class:`pysam.AlignmentSegment`. Defaults to
+            :class:`~integrative_transcriptomics_viewer.cellbarcode.StandardCellBarcode`.
         **kwargs:
             anything that can be passed to :meth:`_build_view_row()`
 
@@ -1985,10 +1993,13 @@ class Configuration:
             A dict of (virtual) BAMs to display the reads from.
         features_list : list
             A list of features to generate views for, one per tab.
-        classification_from : :py:class:`integrative_transcriptomics_viewer.Classification`
-            An instance of an implemented py:class:`integrative_transcriptomics_viewer.Classification` class with the :meth:integrative_transcriptomics_viewer.Classification.get_classification(self, read, gene_id) method where read is a pysam.AlignmentSegment object, gene_id the id of the provided gene, and which returns the classification of the given read.
-        annotation_matching : py:class:`integrative_transcriptomics_viewer.AnnotationMatching`
-            An instance of an implemented AnnotationMatching class with the :meth:`integrative_transcriptomics_viewer.AnnotationMatching.match(self, query_annotation, target_annotation)` method where the query_annotation will be an entry of classifications and target_annotation is the name of a BED entry.
+        classification_from : Classification
+            Instance of :class:`~integrative_transcriptomics_viewer.classification.Classification`.
+            Must implement :meth:`~integrative_transcriptomics_viewer.classification.Classification.get_classification`.
+        annotation_matching : AnnotationMatching
+            Instance of :class:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching`
+            used to map classification labels to BED annotation names via
+            :meth:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching.match`.
         page_title : str
             HTML page title
         **kwargs:
@@ -2039,10 +2050,13 @@ class Configuration:
             A dict of (virtual) BAMs to display the reads from.
         gene : str
             The gene id or name to use the coordinates of for the window to fetch reads over.
-        classification_from : :py:class:`integrative_transcriptomics_viewer.Classification`
-            An instance of an implemented py:class:`integrative_transcriptomics_viewer.Classification` class with the :meth:integrative_transcriptomics_viewer.Classification.get_classification(self, read, gene_id) method where read is a pysam.AlignmentSegment object, gene_id the id of the provided gene, and which returns the classification of the given read.
-        annotation_matching : py:class:`integrative_transcriptomics_viewer.AnnotationMatching`
-            An instance of an implemented py:class:`integrative_transcriptomics_viewer.AnnotationMatching` class with the :meth:`integrative_transcriptomics_viewer.AnnotationMatching.match(self, query_annotation, target_annotation)` method where the query_annotation will be an entry of classifications and target_annotation is the name of a BED entry.
+        classification_from : Classification
+            Instance of :class:`~integrative_transcriptomics_viewer.classification.Classification`.
+            Must implement :meth:`~integrative_transcriptomics_viewer.classification.Classification.get_classification`.
+        annotation_matching : AnnotationMatching
+            Instance of :class:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching`
+            used to align classification labels to BED annotations via
+            :meth:`~integrative_transcriptomics_viewer.annotation_matching.AnnotationMatching.match`.
         page_title : str
             HTML page title
         **kwargs:

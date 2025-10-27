@@ -10,20 +10,38 @@ import pysam
 
 class Classification(ABC):
     """
-    Abstract Class to return an isoform classification for a given read.
-    Should be inherited from and have the .get_classification(self, read, gene_id) method implemented where read is a pysam.AlignmentSegment object
+    Abstract base class that returns isoform classifications for a read.
+    Subclasses must implement :meth:`get_classification` to map a
+    :class:`pysam.AlignmentSegment` and gene identifier to zero or more labels.
     """
 
     @abstractmethod
     def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
+        """
+        Return the classification label(s) for ``read`` within ``gene_id``.
+
+        Parameters
+        ----------
+        read :
+            The aligned read to classify.
+        gene_id :
+            Gene identifier providing the feature context.
+
+        Returns
+        -------
+        list[str] or None
+            ``None`` when the read cannot be classified.
+            A single-element or multi-element list when one or more labels apply.
+        """
         raise NotImplementedError
         # should return a list of classifcations (because of possible ambiguous)
 
 
 class IsoQuantClassification(Classification):
     """
-    Implementation of Classification class to use with a read_assignments.tsv(.gz) output from IsoQuant.
-    Works by internally indexing the file provided. (may be able to use a read name bgzip index for random access)
+    Implementation that indexes IsoQuant ``read_assignments.tsv`` (optionally gzipped)
+    files. :meth:`get_classification` returns IsoQuant's assignment(s) for the read,
+    preserving ambiguous labels when requested.
     """
 
 #    ISOQUANT_READ_ASSIGNMENTS_DEFS = {
@@ -85,6 +103,12 @@ class IsoQuantClassification(Classification):
                     self.read_to_gene_id_to_isoform_id[fields[0]][fields[4]].append(fields[3])
 
     def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
+        """
+        Return the IsoQuant assignment(s) for ``read`` within ``gene_id``.
+
+        Falls back to ``\"other_gene\"`` when the read is assigned but not to the
+        requested gene, and ``None`` when the read has no recorded assignment.
+        """
         if read.query_name not in self.read_to_gene_id_to_isoform_id:
             return None
 
@@ -99,13 +123,19 @@ class IsoQuantClassification(Classification):
 
 class BAMtagClassification(Classification):
     """
-    Implementation of Classification class to use the information stored in a given BAM tag.
+    Implementation that exposes the value stored in a chosen BAM tag through
+    :meth:`get_classification`.
     """
 
     def __init__(self, tag):
         self.tag = tag
 
     def get_classification(self, read: pysam.AlignedSegment, gene_id: str) -> Optional[List[str]]:
+        """
+        Return the tag value for ``read`` in a list, or ``None`` if the tag is absent.
+
+        The value is decoded to ``str`` when necessary for consistency.
+        """
         if not read.has_tag(self.tag):
             return None
         tag_value = get_read_tag(read, self.tag)
@@ -114,5 +144,4 @@ class BAMtagClassification(Classification):
         elif not isinstance(tag_value, str):
             tag_value = str(tag_value)
         return [tag_value]
-
 

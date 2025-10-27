@@ -9,12 +9,25 @@ from integrative_transcriptomics_viewer.genomesource import reverse_comp
 
 class CellBarcode(ABC):
     """
-    Abstract Class to return a cell barcode given a read.
-    Should be inherited from and have the .get_barcode(self, read) method implemented where read is a pysam.AlignmentSegment object
+    Abstract helper that extracts a cell barcode from a read.
+    Subclasses implement :meth:`get_barcode` for their storage format.
     """
 
     @abstractmethod
     def get_barcode(self, read: pysam.AlignedSegment) -> Optional[str]:
+        """
+        Return the cell barcode carried by ``read``.
+
+        Parameters
+        ----------
+        read : pysam.AlignedSegment
+            Read from which to recover the barcode.
+
+        Returns
+        -------
+        str or None
+            The barcode string, or ``None`` when not present.
+        """
         raise NotImplementedError
 
 
@@ -24,6 +37,7 @@ class HaasStyleCellBarcode(CellBarcode):
     """
 
     def get_barcode(self, read: pysam.AlignedSegment) -> Optional[str]:
+        """Extract the barcode from the read name, reverse complemented to original orientation."""
         query_name = read.query_name
         if query_name is None:
             return None
@@ -37,6 +51,7 @@ class ONTCellBarcode(CellBarcode):
     """
 
     def get_barcode(self, read: pysam.AlignedSegment) -> Optional[str]:
+        """Return the value stored in the ``BC`` tag if present."""
         barcode = get_read_tag(read, "BC")
         return str(barcode) if barcode is not None else None
 
@@ -48,5 +63,6 @@ class StandardCellBarcode(CellBarcode):
     """
 
     def get_barcode(self, read: pysam.AlignedSegment) -> Optional[str]:
+        """Return the value stored in the ``CB`` tag if present."""
         barcode = get_read_tag(read, "CB")
         return str(barcode) if barcode is not None else None

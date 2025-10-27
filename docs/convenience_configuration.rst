@@ -1,4 +1,4 @@
-ITV interface
+ITV API
 ============================================
 .. rubric:: Reference specific configuration
 
@@ -11,6 +11,7 @@ Objects of type :class:`~integrative_transcriptomics_viewer.Configuration` store
 
    convenience_configuration/configuration
    convenience_configuration/plotting
+   annotation_matching
    cell_barcode
    classification
 
