@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 import pysam
-from Bio.Seq import Seq
+from integrative_transcriptomics_viewer.genomesource import reverse_comp
 
 
 class CellBarcode(ABC):
@@ -28,7 +28,7 @@ class HaasStyleCellBarcode(CellBarcode):
         if query_name is None:
             return None
         barcode = query_name.split("^", 1)[0]
-        return str(Seq(barcode).reverse_complement())
+        return reverse_comp(barcode)
 
 
 class ONTCellBarcode(CellBarcode):

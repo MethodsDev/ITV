@@ -28,7 +28,6 @@ dependencies:
   - python
   - numpy
   - pyBigWig
-  - biopython
   - pandas
   - resvg
   - cairosvg
