@@ -1,42 +1,89 @@
-import os
+#!/usr/bin/env python3
+from pathlib import Path
+import re
+from textwrap import dedent
 
-# Read the version number from the VERSION file
-def get_version(string):
-    """ Parse the version number variable __version__ from a script. """
-    import re
+
+REPO_ROOT = Path(__file__).resolve().parent
+PACKAGE_INIT = REPO_ROOT / "src" / "integrative_transcriptomics_viewer" / "__init__.py"
+ENVIRONMENT_FILE = REPO_ROOT / "environment.yml"
+PACKAGE_REQUIREMENTS = REPO_ROOT / "requirements.txt"
+DOCS_REQUIREMENTS = REPO_ROOT / "docs" / "requirements.txt"
+
+PYTHON_DEPENDENCIES = [
+    "cairosvg",
+    "intervaltree",
+    "ipywidgets>=8",
+    "numpy",
+    "pandas",
+    "pyBigWig",
+    "pysam",
+]
+
+CONDA_ONLY_DEPENDENCIES = [
+    "git",
+    "jupyterlab",
+    "cython",
+    "resvg",
+    "py-open-fonts",
+    "ipykernel",
+    "samtools",
+]
+
+DOCS_DEPENDENCIES = [
+    "sphinx>=5.0",
+    "pydata-sphinx-theme",
+    "ipywidgets>=8",
+]
+
+
+def parse_version(init_contents: str) -> str:
+    """Extract the package version from the __init__ module."""
     version_re = r"^__version__ = ['\"]([^'\"]*)['\"]"
-    version_str = re.search(version_re, string, re.M).group(1)
-    return version_str
+    match = re.search(version_re, init_contents, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("Unable to determine package version from __init__.py")
+    return match.group(1)
 
-version = get_version(open('src/integrative_transcriptomics_viewer/__init__.py').read())
 
-env_yml_content = f"""
-name: itv-{version}
-channels:
-  - conda-forge
-  - bioconda
-  - r
-dependencies:
-  - python>=3.9
-  - pip
-  - git
-  - sphinx-toolbox
-  - pydata-sphinx-theme
-  - jupyterlab
-  - pysam
-  - cython
-  - python
-  - numpy
-  - pyBigWig
-  - pandas
-  - resvg
-  - cairosvg
-  - ipywidgets
-  - intervaltree
-  - py-open-fonts
-  - ipykernel
-  - samtools
-"""
+def write_lines(path: Path, lines: list[str]) -> None:
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-with open("environment.yml", "w") as env_yml_file:
-    env_yml_file.write(env_yml_content)
+
+def unique(sequence: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in sequence:
+        if item not in seen:
+            ordered.append(item)
+            seen.add(item)
+    return ordered
+
+
+def main() -> None:
+    version = parse_version(PACKAGE_INIT.read_text(encoding="utf-8"))
+
+    environment_dependencies = unique(
+        ["python>=3.9", "pip"] + CONDA_ONLY_DEPENDENCIES + PYTHON_DEPENDENCIES
+    )
+
+    env_contents = dedent(
+        f"""\
+        name: itv-{version}
+        channels:
+          - conda-forge
+          - bioconda
+          - r
+        dependencies:
+        """
+    ).splitlines()
+
+    env_contents.extend(f"  - {dep}" for dep in environment_dependencies)
+    write_lines(ENVIRONMENT_FILE, env_contents)
+
+    write_lines(PACKAGE_REQUIREMENTS, PYTHON_DEPENDENCIES)
+    write_lines(DOCS_REQUIREMENTS, DOCS_DEPENDENCIES)
+
+
+if __name__ == "__main__":
+    main()

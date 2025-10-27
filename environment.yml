@@ -1,0 +1,22 @@
+name: itv-1.1.2
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - python>=3.9
+  - pip
+  - git
+  - jupyterlab
+  - cython
+  - resvg
+  - py-open-fonts
+  - ipykernel
+  - samtools
+  - cairosvg
+  - intervaltree
+  - ipywidgets>=8
+  - numpy
+  - pandas
+  - pyBigWig
+  - pysam

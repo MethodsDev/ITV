@@ -1,0 +1,7 @@
+cairosvg
+intervaltree
+ipywidgets>=8
+numpy
+pandas
+pyBigWig
+pysam
