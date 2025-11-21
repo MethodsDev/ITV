@@ -9,7 +9,7 @@ See Tutorial/Vignette at [https://kinnex-documentation-external.readthedocs.io/e
 Requires conda
 
 ```
-git clone https://github.com/MethodsDev/ITV.git && cd ITV \
+git clone https://github.com/MethodsDev/ITV.git && cd ITV
 make install
 ```
 
