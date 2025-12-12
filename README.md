@@ -2,6 +2,8 @@
 
 This Python package is based on a fork of the Genomeview package. It includes changes and helpers targeted at using ITV to view long reads sequencing data in the transcriptome context, and to allow more interactive comparisons.
 
+See API documentation on [ReadTheDocs](https://itv.readthedocs.io/en/latest/).
+
 See Tutorial/Vignette at [https://kinnex-documentation-external.readthedocs.io/en/latest/jupyter-notebooks/demo-ITV.html](https://kinnex-documentation-external.readthedocs.io/en/latest/jupyter-notebooks/demo-ITV.html)
 
 ## How to install
