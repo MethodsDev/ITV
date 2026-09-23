@@ -130,5 +130,13 @@ The trunk is done when:
    is written down in [07-spike-and-decision-log.md](07-spike-and-decision-log.md).
 5. The schema is versioned and documented.
 
-At that point, run the spike ([07](07-spike-and-decision-log.md)) and choose a
-path.
+At that point, run **stage 2** of the spike
+([07](07-spike-and-decision-log.md)) and choose a path.
+
+## Before starting
+
+Run **stage 1** of the spike first (Q1 Export SVG quality, Q3 bundle size).
+Neither needs ITV code, both take about a day, and Q1 is existential — if
+JBrowse's vector export is not good enough for figures, Path A is dead and the
+trunk should be designed with Path B in mind instead. Q3's answer also feeds
+T4, since the packaging strategy sets the payload size budget.

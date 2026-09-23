@@ -41,8 +41,20 @@ them.
 - [x] **Firefox is the primary target browser**; Chrome secondary but must work.
 - [x] Path A (JBrowse 2) is the preferred first attempt.
 - [x] Tabs to be implemented as track groups + `showTrack`/`hideTrack` buttons, one JBrowse instance.
-- [ ] Spike run — 7 questions, see [07-spike-and-decision-log.md](07-spike-and-decision-log.md).
+- [ ] **Spike stage 1** (Q1 Export SVG quality, Q3 bundle size) — no ITV code needed, ~1 day. **Do this first.**
+- [ ] Common trunk ([04](04-plan-common-trunk.md)) through T4.
+- [ ] Spike stage 2 (Q2, Q4, Q5, Q6, Q7).
 - [ ] Path chosen.
+
+## Execution order
+
+```
+spike stage 1  →  common trunk T0-T5  →  spike stage 2  →  Path A or B
+   (Q1, Q3)                               (Q2,Q4,Q5,Q6,Q7)
+```
+
+Q1 is existential — clean vector export is the one hard requirement. It needs
+no ITV code, so answer it before investing in the trunk.
 
 ## Known gaps requiring work under Path A
 

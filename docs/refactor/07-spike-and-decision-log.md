@@ -2,12 +2,43 @@
 
 ## Go / no-go spike
 
-**Timebox: ~1 week.** Run after the common trunk
-([04](04-plan-common-trunk.md)) is at least through T4, so there is a real
-payload to test against.
-
 Purpose: decide between [Path A](05-path-a-jbrowse2.md) and
 [Path B](06-path-b-canvas.md) on evidence rather than preference.
+
+**The spike runs in two stages.** Q1 and Q3 depend on nothing and answer the
+existential question, so they run *before* the common trunk. The rest need a
+real payload and run after.
+
+### Stage 1 — before the trunk (~1 day, no ITV code)
+
+| Q | Question | Why it can run now |
+|---|---|---|
+| [Q1](#q1--does-exportsvg-work-from-jbrowsereact-app2-and-is-the-output-clean) | Is Export SVG Illustrator-clean? | stock `react-app2`, any BAM |
+| [Q3](#q3--what-is-the-real-gzipped-bundle-for-a-minimal-app--one-custom-plugin) | Real gzipped bundle size? | a Vite build and a trivial plugin |
+
+**Q1 is existential.** Clean vector export is the single hard requirement and
+the main objection raised against JBrowse. If it fails, Path A is dead and
+months of trunk work would otherwise have been done under a false assumption.
+Answer it before committing to anything.
+
+Q3 is cheap to answer at the same time and determines the packaging strategy
+([A5a vs A5b](05-path-a-jbrowse2.md#a5--static-export)), which is useful input
+to the trunk's serialisation design (T4).
+
+### Stage 2 — after the trunk (~1 week)
+
+Requires [04-plan-common-trunk.md](04-plan-common-trunk.md) through at least
+T4, so there is a real payload to test against.
+
+| Q | Question |
+|---|---|
+| [Q2](#q2--can-multi-region-lgv-do-per-region-width-normalisation) | Per-region width normalisation |
+| [Q4](#q4--can-a-custom-adapter-serve-in-memory-reads-at-realistic-depths) | Custom adapter performance on a real payload |
+| [Q5](#q5--does-the-track-category-ux-actually-beat-tabs-for-comparing-cell-types) | Track groups vs tabs, with a real user |
+| [Q6](#q6--can-stacked-sediment-coverage-be-reproduced-with-built-in-renderers) | Stacked sediment coverage |
+| [Q7](#q7--does-everything-behave-in-firefox) | Firefox parity |
+
+---
 
 ### Q1 — Does `exportSvg` work from `@jbrowse/react-app2`, and is the output clean?
 
@@ -150,11 +181,20 @@ confirmation check rather than an expected risk.
 
 ### Decision rule
 
-- **Q1, Q3, Q4, Q7 pass** → take Path A. Q2, Q5 and Q6 failures are absorbed
+**After stage 1:**
+- **Q1 fails** → stop. Path B. Clean vector export is non-negotiable and is
+  the main reason people choose ITV. Do the trunk with Path B in mind.
+- **Q1 passes, Q3 large** → continue to the trunk on Path A, but plan for the
+  shared-runtime bundle
+  ([A5b](05-path-a-jbrowse2.md#a5b--multi-report-bundle-with-shared-runtime))
+  rather than single-file-per-gene, and feed that back into T4.
+- **Both pass** → continue to the trunk on Path A.
+
+**After stage 2:**
+- **Q4 and Q7 pass** → commit to Path A. Q2, Q5 and Q6 failures are absorbed
   by documented fallbacks; they change scope, not direction.
-- **Q3 or Q4 fail hard** → Path B, with the common trunk already banked.
-- **Q1 or Q7 fails** → Path B. Clean vector export in Firefox is
-  non-negotiable.
+- **Q4 fails hard** → Path B, with the common trunk already banked.
+- **Q7 fails** → Path B. Firefox is the primary target.
 
 ---
 
@@ -251,5 +291,19 @@ overlapping layouts, but **no stacked/cumulative area mode**.
 them as overlapping filled XY subtracks, opaque, tallest first. Added spike Q6
 to confirm z-order is controllable. Custom display type is the documented
 fallback. See [A2b](05-path-a-jbrowse2.md#a2b--stacked-sediment-coverage-layers).
+
+### 2026-09-23 — Spike split into two stages; Q1 and Q3 move ahead of the trunk
+Q1 (Export SVG quality) and Q3 (real bundle size) depend on no ITV code —
+a stock `react-app2` build answers both in about a day.
+
+Q1 is existential: clean vector export is the one hard requirement, and if it
+fails, Path A is dead. Running it after the trunk would risk months of work
+done under a false assumption. Q3 is free to run alongside and its answer
+feeds the trunk's serialisation design (T4), since packaging strategy
+determines the payload size budget.
+
+**Consequence:** stage 1 (Q1, Q3) runs before
+[04-plan-common-trunk.md](04-plan-common-trunk.md); stage 2 (Q2, Q4, Q5, Q6,
+Q7) runs after T4. Decision rule split accordingly.
 
 <!-- Next entry goes here -->
