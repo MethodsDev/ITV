@@ -72,8 +72,15 @@ to the coordinate transform.
 **Fail:** width scaling is entangled through block layout, rendering and
 export such that a subclass would fork significant machinery.
 
-**Prior assessment:** likely a pass — it is a scaling factor per block — but
-this is the most uncertain piece of Path A.
+**Prior assessment:** likely a pass — it is a scaling factor per block.
+
+**The bar is lower than it first appeared.** ITV's current exon-slice mode is
+experimental: it works, but scales elements badly, because it applies
+`<svg viewBox>` / `<use href>` tricks over an already-rendered document
+instead of doing a real coordinate transform. So this question is *not* "can
+we reproduce current output" — a genuine per-region transform under either
+path should be an improvement on what exists today. Treat Q2 as
+scope-affecting rather than blocking.
 
 ---
 
@@ -305,5 +312,16 @@ determines the payload size budget.
 **Consequence:** stage 1 (Q1, Q3) runs before
 [04-plan-common-trunk.md](04-plan-common-trunk.md); stage 2 (Q2, Q4, Q5, Q6,
 Q7) runs after T4. Decision rule split accordingly.
+
+### 2026-09-23 — Exon-slice mode is experimental; current output is not the quality bar
+The `plot_exons` slice mode works but produces badly scaled elements, hurting
+quality and readability. Cause: it applies `<svg viewBox>` / `<use href>`
+tricks over an already-rendered document rather than performing a real
+coordinate transform.
+
+**Consequence:** keep the capability through the rewrite, where a proper
+renderer should fix it, but do not treat current output as the target to
+match. Spike Q2 downgraded from blocking to scope-affecting — any genuine
+per-region transform is expected to beat what exists.
 
 <!-- Next entry goes here -->

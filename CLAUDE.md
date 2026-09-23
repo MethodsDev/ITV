@@ -9,6 +9,24 @@ Integrative Transcriptomics Viewer (ITV) is a Python package (import name
 long-read RNA-seq data in transcriptome context inside Jupyter notebooks. Output is SVG,
 rasterized to PNG/PDF/HTML as needed.
 
+## Active work: the interactive rewrite
+
+This branch (`refactor/interactive-rewrite`, based on `typing_and_doc`) carries the design docs
+for re-architecting ITV from a static SVG generator into an interactive, efficient, shareable
+viewer. **`docs/refactor/` is the source of truth for that work — read it before proposing or
+implementing rewrite changes**, and do not re-derive the analysis from scratch.
+
+- Start at `docs/refactor/README.md`. It has a routing table; each file stands alone, so load
+  only what the task needs rather than all nine.
+- `docs/refactor/04-plan-common-trunk.md` is the implementation entry point.
+- `docs/refactor/07-spike-and-decision-log.md` holds the go/no-go spike and an **append-only
+  decision log** — add an entry there when a design decision is made or reversed, rather than
+  silently editing the other docs.
+- Code line references in those docs resolve against `typing_and_doc`, not `main`.
+
+Current state: exploration complete, plan drafted, **no rewrite code written yet**. Spike stage 1
+(Q1 Export SVG quality, Q3 bundle size) runs before any trunk work.
+
 ## Environment / install
 
 Requires conda; there is no plain `pip install -r requirements.txt` path checked into git

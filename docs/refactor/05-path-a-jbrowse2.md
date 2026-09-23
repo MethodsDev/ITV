@@ -108,10 +108,14 @@ list into `displayedRegions`. No custom code.
 
 If per-region width normalisation is required (ITV's
 `normalize_interval_width`), implement `ITVExonSliceView` as an LGV subclass
-applying a per-region scaling factor in the coordinate transform. Assessment is
-that this is tractable — it is a scaling factor per block — but it touches
-block-layout machinery and is the most uncertain piece of Path A. See spike
-question 2.
+applying a per-region scaling factor in the coordinate transform. Tractable —
+it is a scaling factor per block — though it touches block-layout machinery.
+See spike Q2.
+
+**ITV's existing slice mode is experimental and scales elements badly** (it
+manipulates an already-rendered document via `<svg viewBox>`/`<use href>`
+rather than transforming coordinates). Doing this properly is an improvement,
+not a reproduction, so Q2 is scope-affecting rather than blocking.
 
 ## A4 — Isoform-paired annotation
 

@@ -62,6 +62,14 @@ replacement must preserve them.
    Illustrator/Inkscape. This is the single strongest current feature.
 2. **Transcriptome-coordinate / exon-slice projection.** Intron-collapsed views
    with optional per-exon width normalisation (`normalize_interval_width`).
+
+   **Status: experimental.** The mode works, but produces badly scaled
+   elements that hurt quality and readability — a consequence of implementing
+   the projection as `<svg viewBox>` + `<use href>` tricks over an
+   already-rendered document rather than as a real coordinate transform. Worth
+   carrying into the rewrite, where a proper renderer should fix it.
+   **Do not treat the current output as the quality bar** — the target is to
+   do better, not to reproduce it.
 3. **Classification-driven splitting.** Reads grouped by cell type, cell
    barcode, SQANTI-like read class, or arbitrary BAM tag — each group getting
    its own read track *and* its own coverage track. Note that ITV already
