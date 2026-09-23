@@ -39,6 +39,9 @@ ITVPayload
           start[], end[], flags[], cigar (varint-packed), mapq[]
           tag_ids[] -> tag dictionary
       coverage:   binned array (precomputed per readset)
+      coverage_layers[]?      # stacked "sediment" mode, see note below
+          key, color, values[]    # ALREADY cumulative-summed
+      annotation_ids[]        # BED/GTF entries belonging to this split
       linked_annotation_id?   # isoform-paired annotation, see note below
   stats:        per-feature summary for the overview view
 ```
@@ -48,8 +51,18 @@ Design constraints:
 - Must round-trip to *both* a JBrowse custom adapter and a Canvas scene layer.
 - Coverage is precomputed per readset, not derived client-side, because ITV
   already computes it and the splits are known ahead of time.
+- `coverage_layers` carries ITV's stacked "sediment" modes
+  (`add_tagged_coverage`, `add_binned_coverage`, `add_peak_coverage`,
+  `add_stranded_coverage`). **Keep the values cumulative-summed**, exactly as
+  `_add_multi_coverage` already produces them — Path A's planned renderer
+  depends on that, since JBrowse has no stacked mode and the workaround is to
+  hand it pre-summed series. Record the layer order explicitly; draw order
+  matters.
+- `annotation_ids` per readset preserves the fact that ITV splits BED/GTF
+  entries alongside reads, so a backend can place each split's annotation
+  next to its own reads.
 - `linked_annotation_id` carries ITV's isoform-paired-annotation relationship
-  (capability 4 in [00-current-architecture.md](00-current-architecture.md));
+  (capability 5 in [00-current-architecture.md](00-current-architecture.md));
   it must be in the payload even if neither renderer consumes it on day one.
 
 Deliverable: `docs/refactor/payload-schema.md` + a Python dataclass module +

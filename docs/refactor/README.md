@@ -38,6 +38,17 @@ them.
 
 - [x] Scope confirmed: primary use case is **per pre-defined gene/transcript**, not arbitrary whole-transcriptome browsing. Whole-genome overview is a nice-to-have.
 - [x] Static vector export for papers/posters is a **hard requirement**.
+- [x] **Firefox is the primary target browser**; Chrome secondary but must work.
 - [x] Path A (JBrowse 2) is the preferred first attempt.
-- [ ] Spike run — see [07-spike-and-decision-log.md](07-spike-and-decision-log.md).
+- [x] Tabs to be implemented as track groups + `showTrack`/`hideTrack` buttons, one JBrowse instance.
+- [ ] Spike run — 7 questions, see [07-spike-and-decision-log.md](07-spike-and-decision-log.md).
 - [ ] Path chosen.
+
+## Known gaps requiring work under Path A
+
+| Gap | Planned approach | Spike Q |
+|---|---|---|
+| Per-exon width normalisation | LGV subclass scaling each region | Q2 |
+| Self-contained single-file HTML | Vite bundle + inlined payload + in-memory adapter | Q3 |
+| Stacked "sediment" coverage | Pre-summed layers as overlapping filled XY | Q6 |
+| Isoform-paired annotation | Custom display type | — |

@@ -57,11 +57,20 @@ replacement must preserve them.
    with optional per-exon width normalisation (`normalize_interval_width`).
 3. **Classification-driven splitting.** Reads grouped by cell type, cell
    barcode, SQANTI-like read class, or arbitrary BAM tag — each group getting
-   its own read track *and* its own coverage track.
-4. **Isoform-paired annotation.** Pairing a specific transcript/isoform
+   its own read track *and* its own coverage track. Note that ITV already
+   splits **both reads and BED annotation entries** per group, which makes the
+   logic directly reusable by a track-emitting backend.
+4. **Stacked "sediment" coverage.** Coverage split into cumulative stacked
+   layers by BAM tag (`add_tagged_coverage`), binned alignment start/end
+   position (`add_binned_coverage`), nearest read-end peak
+   (`add_peak_coverage`) or strand (`add_stranded_coverage`). All funnel into
+   `_add_multi_coverage`, which accumulates into a running total and draws
+   layers back-to-front so they read as sediment bands. Importantly the layers
+   are emitted **already summed**, which matters for reimplementation.
+5. **Isoform-paired annotation.** Pairing a specific transcript/isoform
    reference model with the reads that align to it.
-5. **Scriptable batch figure generation** from Python, for a list of genes.
-6. **`VirtualBAM`** — in-memory, region-restricted, filtered read sets. This is
+6. **Scriptable batch figure generation** from Python, for a list of genes.
+7. **`VirtualBAM`** — in-memory, region-restricted, filtered read sets. This is
    an asset for the rewrite, not a liability: it is already the compact
    pre-split payload that a new renderer would want.
 

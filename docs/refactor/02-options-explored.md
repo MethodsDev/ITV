@@ -112,8 +112,11 @@ At 40–80 bytes/read that is still hundreds of thousands of reads.
 ### 2.2 HTML + sidecar data directory (or `.zip` read in-page)
 **Pros** — no size ceiling; shared runtime across many reports.
 **Cons** — not single-file; **`fetch()` of sidecar files is blocked under
-`file://` in Chrome**, so recipients need a local web server or the files must
-be served. This is the main practical gotcha.
+`file://` in both Firefox and Chrome** (Firefox since v68,
+`privacy.file_unique_origin`, CVE-2019-11730), so recipients need a local web
+server or hosting. This is the main practical gotcha, and it is not avoidable
+by choosing a browser. Plain link navigation between local HTML files is not
+affected.
 **Verdict:** secondary tier for large sessions and for multi-report bundles.
 
 ### 2.3 In-browser BAM readers over HTTP range requests

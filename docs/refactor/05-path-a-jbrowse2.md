@@ -38,32 +38,68 @@ question 4.
 
 ## A2 — Classification splits
 
-**Recommended idiom: N tracks in a categorised track selector, not tabs.**
+**Chosen idiom: one track per split, in one ordered track list, with a button
+row driving `showTrack`/`hideTrack` to give tab-like behaviour.**
 
-Generate one track per classification split from Python, each backed by its own
-`ITVReadsAdapter` instance over the corresponding `VirtualBAM`-derived readset,
-grouped with track `category` so they collapse into a tree.
+An LGV holds a single ordered list of mixed-type tracks. So for each
+classification split emit a *group* of tracks:
 
-Paired with each read track, an `ITVCoverageAdapter` track for that same split
-— this covers the "coverage track per split" requirement directly, since the
-payload already carries precomputed per-readset coverage.
+```
+[split: celltype=Tcell]
+    ITVAnnotationAdapter  ->  isoforms / BED entries relevant to this split
+    ITVCoverageAdapter    ->  coverage for this split
+    ITVReadsAdapter       ->  reads for this split
+[split: celltype=Bcell]
+    ...
+```
+
+Order within a group is controlled, so each split's annotation sits directly
+above or below its own reads. A button row above the view calls
+`showTrack`/`hideTrack` over group members — one JBrowse instance, one worker
+pool, and the perceived result is ITV's current tabs.
+
+**This reuses ITV's existing work directly.** The current code already splits
+both reads *and* BED annotation entries per tab; that Python logic feeds the
+payload unchanged and simply emits more tracks instead of more SVG documents.
 
 Alternatives considered:
+- **Categorised track selector** instead of a button row. Same track
+  structure, different chrome; free either way. Worth showing users alongside
+  the buttons (spike Q5) — comparing splits side by side may beat flipping
+  between them.
 - `jexl` `filter` + `color` callbacks over a single track. Simpler config, but
   it pushes filtering to render time and does not give per-split coverage as
   naturally. Good for quick ad-hoc colouring, not for the primary split axis.
-- **Multiple JBrowse instances inside existing ITV tabs.** Viable fallback but
-  expensive — each instance carries its own worker pool, session state and
-  render loop. Prefer one instance with many tracks. Only reach for this if
-  track counts become unmanageable in the selector UI.
-- Own tab chrome above `react-app2`, flipping track visibility rather than
-  remounting. Keeps one instance and one worker pool while preserving the tab
-  metaphor users know. **This is the compromise to reach for if track
-  categories test badly with users.**
+- **Multiple JBrowse instances inside existing ITV tabs.** Rejected as the
+  default — each instance carries its own worker pool, session state and
+  render loop, reimporting the heaviness the rewrite exists to remove. Keep as
+  a last resort if track counts become unmanageable.
 
-Worth validating with an actual user (spike question 5): categories may be
-*better* than tabs here, because comparing cell types side by side beats
-flipping between them.
+## A2b — Stacked "sediment" coverage layers
+
+ITV supports coverage split into cumulative stacked layers by BAM tag, by
+binned alignment start/end position, by read-end peak, or by strand
+(`add_tagged_coverage`, `add_binned_coverage`, `add_peak_coverage`,
+`add_stranded_coverage`, all funnelling into `_add_multi_coverage`).
+
+JBrowse multi-quantitative tracks have no stacked/cumulative mode — only
+multi-row and overlapping, across five plot types.
+
+**Planned approach — no custom rendering needed.** `_add_multi_coverage`
+already emits each layer *pre-summed* (`cumulative_coverage[ix]`). Carry those
+pre-summed series into the payload as ordinary subtracks and render as an
+**overlapping filled XY plot** with opaque fills, tallest drawn first.
+Visually identical to the current sediment bands, and it inherits Export SVG
+for free.
+
+Requires control over subtrack draw order and fill opacity. Subtrack colours
+and row ordering are configurable (`facet` `domain`, per-track colour, manual
+reorder); *z-order in overlapping mode* is the specific unknown — spike Q6.
+
+Fallback if z-order is not controllable: a custom display type with its own
+renderer. Precedent exists in the third-party `cancerit/proportionalmultibw`
+plugin, which does stacked proportional bigwigs. A well-supported plugin
+point, so the fallback is real work but not risky work.
 
 ## A3 — Exon slices
 
@@ -115,7 +151,10 @@ Navigation: sidebar gene list, client-side routing, payload fetched on
 selection.
 
 **Constraint to design around:** `fetch()` of `data/*.bin` is blocked under
-`file://` in Chrome. Options, in order of preference:
+`file://` — in **Firefox and Chrome alike**. Firefox has treated each
+`file://` document as a unique origin since version 68
+(`privacy.file_unique_origin`, CVE-2019-11730). Targeting Firefox first does
+not avoid this. Options, in order of preference:
 1. Ship with a one-line launcher (`python -m http.server`) and document it.
 2. Inline all payloads into `index.html` when the total is small enough.
 3. Single-file-per-gene (A5a) for the handful of genes that matter, plus a
@@ -159,9 +198,21 @@ form proves insufficient.
 | A3 exon slices | A1 | native first, subclass only if needed |
 | A5a single-file | A1 | unblocks sharing early |
 | A6 batch figures | A1 | restores existing capability |
+| A2b sediment coverage | A2 | try pre-summed overlapping XY before custom renderer |
 | A4 isoform display | A1–A3 | most bespoke |
 | A5b multi-report | A5a | |
 | A7 overview | trunk T5 | nice-to-have, last |
+
+## Browser support
+
+**Firefox is the primary target**; Chrome is secondary but must work.
+
+- Put Firefox in the screenshot/CI baseline from A1 onwards rather than
+  retrofitting it later.
+- JBrowse layers WebGPU/WebGL2 shaders above a Canvas2D baseline, so Firefox
+  degrades to the baseline rather than failing. That baseline is also the path
+  that feeds Export SVG, so the export-critical code is the most portable code.
+- The `file://` sidecar-fetch restriction applies to Firefox too — see A5b.
 
 ## Ongoing costs to accept
 

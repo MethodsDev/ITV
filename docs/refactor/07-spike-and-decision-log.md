@@ -103,13 +103,58 @@ multiple JBrowse instances.
 
 ---
 
+---
+
+### Q6 — Can stacked "sediment" coverage be reproduced with built-in renderers?
+
+**Why it matters:** ITV splits coverage into cumulative stacked layers by tag,
+binned start/end position, read-end peak, or strand. JBrowse
+multi-quantitative tracks have **no stacked/cumulative mode** — only
+multi-row and overlapping.
+
+**Test:** emit pre-summed layers (which `_add_multi_coverage` already produces
+as `cumulative_coverage[ix]`) as subtracks of a multi-quantitative track.
+Render as overlapping filled XY plot with opaque fills. Try to force draw
+order tallest-first.
+
+**Pass:** z-order and fill opacity are controllable, and the result is visually
+equivalent to current ITV sediment bands — including after Export SVG.
+
+**Fail:** subtrack z-order in overlapping mode is not controllable, so layers
+occlude each other wrongly.
+
+**On failure:** custom display type with its own renderer. Well-supported
+plugin point, precedent in `cancerit/proportionalmultibw`. Adds scope, does
+not change path.
+
+---
+
+### Q7 — Does everything behave in Firefox?
+
+**Why it matters:** Firefox is the primary target browser.
+
+**Test:** run Q1 (Export SVG), the multi-region view, and the Q4 adapter in
+Firefox as well as Chrome.
+
+**Pass:** no behavioural difference in export output, rendering, or adapter
+performance.
+
+**Fail:** Firefox-specific rendering or export defects.
+
+**Note:** JBrowse's GPU shaders sit above a Canvas2D baseline, so absent
+WebGPU the baseline is used — and the baseline is also what drives SVG export.
+No Firefox-specific blocker was found during research, so this is a
+confirmation check rather than an expected risk.
+
+---
+
 ### Decision rule
 
-- **Q1, Q3, Q4 pass** → take Path A. Q2 and Q5 failures are absorbed by the
-  documented fallbacks; they change scope, not direction.
+- **Q1, Q3, Q4, Q7 pass** → take Path A. Q2, Q5 and Q6 failures are absorbed
+  by documented fallbacks; they change scope, not direction.
 - **Q3 or Q4 fail hard** → Path B, with the common trunk already banked.
-- **Q1 fails** → Path B. Vector export is non-negotiable and is the main reason
-  people use ITV.
+- **Q1 or Q7 fails** → Path B. Clean vector export in Firefox is
+  non-negotiable.
 
 ---
 
@@ -163,5 +208,48 @@ own worker pool, session state and render loop.
 **Consequence:** prefer one instance with many categorised tracks; own tab
 chrome above `react-app2` is the compromise if users need tabs. Multiple
 instances stay as a last resort.
+
+### 2026-09-23 — Tabs implemented as track groups + show/hide buttons
+An LGV holds one ordered list of mixed-type tracks (alignments, quantitative,
+annotation), freely interleaved and reorderable, with programmatic
+`showTrack`/`hideTrack`. So each classification split becomes a *group* of
+tracks — annotation + coverage + reads — and a button row toggles group
+visibility.
+
+**Consequence:** ITV's current per-tab splitting of both reads and BED
+annotation entries is reused unchanged; it emits more tracks instead of more
+SVG documents. Supersedes the earlier "categorised track selector, not tabs"
+recommendation — the track structure is the same either way, and the button
+row is closer to the UX users already have. One instance, one worker pool.
+See [A2](05-path-a-jbrowse2.md#a2--classification-splits).
+
+### 2026-09-23 — Firefox is the primary target browser
+Chrome secondary but must work.
+
+**Consequence:** Firefox joins the screenshot/CI baseline from the first
+milestone; added spike Q7. No Firefox-specific blocker found — JBrowse's GPU
+shaders sit above a Canvas2D baseline, and that baseline is also what drives
+SVG export.
+
+### 2026-09-23 — Correction: the `file://` fetch restriction is not Chrome-specific
+Earlier notes framed sidecar-file `fetch()` blocking as a Chrome behaviour.
+It applies to **Firefox as well**, which has treated each `file://` document
+as a unique origin since version 68 (`privacy.file_unique_origin`,
+CVE-2019-11730).
+
+**Consequence:** choosing Firefox as the primary target does *not* relax the
+multi-report packaging constraint. The index-page-plus-single-file-reports
+approach remains the offline-safe option, because plain link navigation
+between local HTML files is unaffected.
+
+### 2026-09-23 — Sediment coverage: no native JBrowse mode, workaround identified
+JBrowse multi-quantitative tracks support five plot types under multi-row or
+overlapping layouts, but **no stacked/cumulative area mode**.
+
+**Consequence:** plan to exploit the fact that
+`bamtrack.py::_add_multi_coverage` already emits *pre-summed* layers — render
+them as overlapping filled XY subtracks, opaque, tallest first. Added spike Q6
+to confirm z-order is controllable. Custom display type is the documented
+fallback. See [A2b](05-path-a-jbrowse2.md#a2b--stacked-sediment-coverage-layers).
 
 <!-- Next entry goes here -->

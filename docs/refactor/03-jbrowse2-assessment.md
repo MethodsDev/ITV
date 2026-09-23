@@ -19,11 +19,15 @@ Every claim below is tagged:
 | Exon slices side by side | Native multi-region LGV, space-delimited locations | verified |
 | Per-exon width normalisation | Not standard; needs a custom view/display subclass | open |
 | Reads split by cell type / read class | `jexl` `filter`+`color` callbacks, or one adapter per split | verified |
+| Multiple BAM + annotation tracks, freely ordered | Native — one ordered track list, mixed types, drag to reorder | verified |
+| Show/hide tracks programmatically (tabs-by-button) | `showTrack(id)` / `hideTrack(id)` | verified |
 | Coverage track per split | Quantitative tracks; custom adapter can serve coverage | likely |
+| **Stacked/"sediment" cumulative coverage layers** | **No native stacked mode.** Workaround available — see below | verified |
 | Isoform-paired annotation with its reads | No native concept; custom display type | open |
 | In-memory / inlined data source | Custom adapter extending `BaseFeatureDataAdapter` | verified |
 | Self-contained single-file HTML | **No built-in support.** Must be built. | verified |
 | Tabbed UI | No native concept. Track categories, or own chrome. | verified |
+| Firefox as primary target | Canvas2D baseline with GPU layered above; no FF-specific blocker found | likely |
 
 ## Findings in detail
 
@@ -117,6 +121,73 @@ in the coordinate transform, so a custom view subclass should be tractable, but
 it touches the block-layout machinery and is the single most uncertain piece of
 Path A.
 
+### Track list, ordering and toggling [verified]
+
+An LGV holds a single **ordered list of tracks of mixed types** — alignments,
+quantitative and annotation tracks all coexist and interleave freely. Order
+follows the config/session by default; users reorder by dragging the six-dot
+handle on the track label. `showTrack(id)` / `hideTrack(id)` give programmatic
+control.
+
+This is what makes a **button-row-as-tabs** UI straightforward: emit every
+split as its own track (reads + coverage + matching annotation), then have
+buttons call `showTrack`/`hideTrack` over named groups. One JBrowse instance,
+one worker pool, tab-like perceived behaviour, and full control over vertical
+ordering so each split's annotation sits directly above or below its reads.
+
+ITV already splits both reads *and* BED annotation entries for its current
+tabs, so that Python logic is directly reusable — it just emits more tracks
+instead of more SVG documents.
+
+### Multi-quantitative tracks and the "sediment layers" gap [verified]
+
+ITV's `bamtrack.py::_add_multi_coverage` builds a **cumulative** coverage
+array: each layer adds into a running total and layers are drawn back-to-front
+(tallest behind) so they read as stacked sediment bands. It is fed by
+`add_binned_coverage` (bin by alignment start/end), `add_peak_coverage`
+(bin by nearest read-end peak), `add_tagged_coverage` (bin by BAM tag value)
+and `add_stranded_coverage`.
+
+JBrowse multi-quantitative tracks offer five plot types — XY plot, density,
+line (step), line (interpolated), scatter — each available under **Multi-row**
+(a row per signal) or **Overlapping** (shared plot space). Subtrack colours
+come from the individual track configs or an auto-assigned palette; the
+`facet` slot's `domain` controls row ordering, and users can reorder or sort
+by score from the right-click menu.
+
+**There is no stacked/cumulative area mode.**
+
+**Workaround, and it is a good one:** ITV already does the cumulative
+summation in Python — `_add_multi_coverage` emits each layer as
+`cumulative_coverage[ix]`, i.e. *already summed*. So emit those pre-summed
+series as ordinary subtracks and render with **overlapping filled XY plot**,
+opaque fills, tallest drawn first. That reproduces the sediment appearance
+using built-in renderers with no custom rendering code, and it inherits SVG
+export for free.
+
+**[open]** Whether z-order/draw-order in overlapping mode is controllable
+enough to guarantee tallest-behind. If not, the fallback is a custom display
+type — a well-supported plugin point, and there is precedent in the
+third-party `cancerit/proportionalmultibw` plugin, which does stacked
+proportional bigwigs.
+
+### Firefox as the primary target [likely]
+
+Firefox is the browser to optimise for first. No Firefox-specific blocker was
+found:
+
+- JBrowse layers WebGPU/WebGL2 shaders *above* a Canvas2D baseline, so a
+  browser without WebGPU falls back rather than failing. The Canvas2D path is
+  also the one that feeds SVG export, so the export-critical code path is the
+  most portable one.
+- The `file://` restriction discussed under
+  [self-containment](#known-gaps-and-risks) is **not** Chrome-specific —
+  Firefox has enforced it since version 68.
+
+**[open]** Confirm during the spike that Export SVG, multi-region view and the
+custom adapter all behave identically in Firefox. Add Firefox to any
+screenshot/CI baseline from the start rather than retrofitting.
+
 ### Embedded components [verified]
 
 | Feature | LGV2 / CGV2 | react-app2 | Full app |
@@ -157,13 +228,27 @@ anywidget/ESM wrapper around `react-app2`, or simply generating HTML files and
    with least and the one ITV most needs. Must be built: a Vite bundle of app +
    plugin, with data injected as a global and a custom adapter reading from
    memory.
-2. **No tab concept.** Track categories in the selector are the idiomatic
-   translation; a custom chrome above `react-app2` is the alternative.
-3. **React + MobX-State-Tree is mandatory.** Real learning curve, real bus-factor
+
+   Related browser constraint, **applies to Firefox and Chrome alike**:
+   `fetch()`/XHR of sidecar files from a page opened via `file://` is blocked.
+   Firefox has treated each `file://` document as a unique origin since
+   version 68 (`privacy.file_unique_origin`, in response to CVE-2019-11730);
+   Chrome behaves the same way. This is not a "Chrome quirk" to be avoided by
+   targeting Firefox — it constrains the multi-report packaging design on
+   every browser. Plain link navigation between local HTML files is *not*
+   affected, which is what makes the index-page-plus-single-file-reports
+   approach work offline.
+2. **No tab concept.** Track categories in the selector are one translation;
+   a button row driving `showTrack`/`hideTrack` over track groups is the
+   closer match to ITV's current UX and is cheap to build.
+3. **No stacked/cumulative coverage mode.** Works around cleanly by
+   pre-summing in Python (which ITV already does) and using overlapping filled
+   XY plot; custom display type is the fallback.
+4. **React + MobX-State-Tree is mandatory.** Real learning curve, real bus-factor
    change for the project.
-4. **Plugin API churn.** Major versions v1→v4 so far. A plugin is an ongoing
+5. **Plugin API churn.** Major versions v1→v4 so far. A plugin is an ongoing
    maintenance commitment.
-5. **App-chrome polish.** A menu-bar bug was observed on
+6. **App-shell polish.** A menu-bar bug was observed on
    `https://jbrowse.org/storybook/app/` — after adding a track via the top menu
    bar, the menu bar disappears. This is *app chrome*, not core view code, and
    embedded use supplies its own shell, so the exposure is limited. Worth
@@ -183,3 +268,8 @@ anywidget/ESM wrapper around `react-app2`, or simply generating HTML files and
 - [@jbrowse/img](https://www.npmjs.com/package/@jbrowse/img)
 - [JBrowse Jupyter paper](https://academic.oup.com/bioinformatics/article/39/1/btad032/6989625)
 - [JBrowse 2 paper, Genome Biology 2023](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02914-z)
+- [Quantitative / multi-quantitative tracks](https://jbrowse.org/jb2/docs/user_guides/quantitative_track/)
+- [Hierarchical track selector](https://jbrowse.org/jb2/docs/config_guides/track_selector/)
+- [MDN: CORS request not HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS/Errors/CORSRequestNotHttp)
+- [Mozilla bug 1566051 — XHR/fetch from local files](https://bugzilla.mozilla.org/show_bug.cgi?id=1566051)
+- [cancerit/proportionalmultibw — stacked proportion bigwig plugin](https://github.com/cancerit/proportionalmultibw)
