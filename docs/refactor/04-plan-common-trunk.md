@@ -168,7 +168,7 @@ Practical rules for T2:
    per-step check, not an end-of-task one.
 
 This is why T2 is not a plan-then-delegate task — see the execution guidance
-in [README.md](README.md#execution-order).
+in [README.md](README.md#execution-units).
 
 ## T3 — Reimplement the current SVG renderer on top of the payload
 
