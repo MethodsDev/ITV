@@ -1,7 +1,14 @@
 # Current ITV architecture (as of 2026-09)
 
-Baseline description of the package being replaced. Measurements taken on
-commit `6d54eba` (branch point of `refactor/interactive-rewrite`).
+Baseline description of the package being replaced.
+
+**All line references below are relative to the `typing_and_doc` branch**,
+which `refactor/interactive-rewrite` is based on. They do not resolve against
+`main` — the two diverge by ~2,100 lines, and `_plot_exons_slices` does not
+exist on `main` at all. Re-verify these references after any merge of
+`typing_and_doc` into `main`.
+
+Measurements taken from the `examples/` outputs committed on that branch.
 
 ## Pipeline
 
@@ -29,7 +36,7 @@ embedded in HTML / ipywidgets
 | `convenience.py` | 2517 lines. `Configuration` class — the whole user-facing API: annotation indexing, feature lookup, tab organisation, plotting entry points. |
 | `convenience.py::_plot_exons_slices` (L995–1088) | Nonlinear transcriptome projection, implemented with `<svg viewBox>` + `<use href>` tricks. |
 | `templates.py` | Jinja2 tab assembly. `plot_sorted_support_as_tabs` (L31–98) materialises a full SVG string per (feature × classification) **before** display. |
-| `export.py` | Save to SVG/PNG/PDF via resvg/cairosvg. `SvgSplitter` chops output at `max_height=10000`. |
+| `export.py` | Save to SVG/PNG/PDF via resvg/cairosvg. Defines `SvgSplitter`, which `genomeview.py:118` invokes with `max_height=10000` to chop oversized output. |
 
 ## Measurements
 

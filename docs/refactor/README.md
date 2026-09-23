@@ -4,7 +4,8 @@ Working notes for re-architecting ITV from a static SVG generator into an
 interactive, efficient, shareable viewer.
 
 **Status:** exploration complete, plan drafted, no code written yet.
-**Branch:** `refactor/interactive-rewrite`
+**Branch:** `refactor/interactive-rewrite`, based on **`typing_and_doc`** (not
+`main` — code line references only resolve against `typing_and_doc`).
 **Last updated:** 2026-09-23
 
 ## How to use these documents
