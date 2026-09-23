@@ -57,6 +57,59 @@ spike stage 1  →  common trunk T0-T5  →  spike stage 2  →  Path A or B
 Q1 is existential — clean vector export is the one hard requirement. It needs
 no ITV code, so answer it before investing in the trunk.
 
+## Execution units
+
+Work in one unit per session. Each unit lists the only docs that need loading —
+resist loading all nine, the files are split precisely so you don't have to.
+
+| # | Unit | Load | Model | Mode |
+|---|---|---|---|---|
+| 1 | Spike Q3 — bundle size | `03`, `07` | Sonnet | normal |
+| 2 | Spike Q1 — Export SVG quality | `03`, `07` | Sonnet to set up; **verdict is human** | normal |
+| 3 | T0 — baseline fixtures | `00`, `04` | Sonnet | normal |
+| 4 | **T1 — payload schema** | `00`, `04`; skim `03`, `06` | **Opus** | **plan mode** |
+| 5 | **T2 — extract compute layer** | `04`, `CLAUDE.md` | **Opus throughout** | plan → execute |
+| 6 | T3 — SVG renderer on payload | `04`, T1 schema doc | Sonnet | normal |
+| 7 | T4 — serialisation | `04` | Sonnet | normal |
+| 8 | T5 — overview stats bundle | `04` | Sonnet | normal |
+| 9 | Spike Q4/Q6 | `03`, `05`, `07` | Opus | normal |
+
+**Units 4 and 5 are where to spend effort.** T1 is load-bearing for both paths
+and expensive to get wrong. T2 is hazardous because of the import-time kwargs
+metaprogramming — see
+[04 § Hazard](04-plan-common-trunk.md#hazard-the-import-time-kwargs-metaprogramming).
+Everything else is recoverable, and `/fast` is worth enabling for units 3, 6
+and 7.
+
+Two things that are **not** delegable:
+- **Q1's verdict.** Whether an exported SVG is clean enough for a figure is a
+  human judgment on a rendered artefact opened in Inkscape/Illustrator.
+- **Q5.** Ask an actual ITV user, don't self-assess the UX.
+
+### Starting a unit
+
+Each session: state the unit, point at the docs, state the constraint. E.g.
+
+> Working on the ITV interactive rewrite, **unit 4 (T1 — payload schema)**.
+> Read `docs/refactor/04-plan-common-trunk.md` and
+> `docs/refactor/00-current-architecture.md` first; skim `03` and `06` for
+> what each renderer will need from the payload. Design the schema so it can
+> feed both a JBrowse custom adapter and a Canvas scene layer. Use plan mode
+> and argue the tradeoffs before writing anything.
+
+> Working on the ITV interactive rewrite, **unit 5 (T2)**. Read
+> `docs/refactor/04-plan-common-trunk.md`, especially the hazard section on
+> the import-time kwargs metaprogramming, plus `CLAUDE.md`. Move in small
+> steps and re-import the package after each one.
+
+### Finishing a unit
+
+Append an entry to
+[07-spike-and-decision-log.md](07-spike-and-decision-log.md) for any decision
+made or reversed, and tick the box in [Decision state](#decision-state). The
+log is append-only — it is what lets a session months from now reconstruct
+*why*, not just *what*.
+
 ## Known gaps requiring work under Path A
 
 | Gap | Planned approach | Spike Q |

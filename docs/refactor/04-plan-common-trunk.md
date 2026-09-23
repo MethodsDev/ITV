@@ -13,12 +13,51 @@ a compact, versioned data payload.
 Before touching anything, capture what current ITV produces so the rewrite can
 be checked against it.
 
-- Pick ~10 representative cases: single gene, multi-isoform gene, exon-slice
-  view, classification tab split, coverage-only, read-level zoom.
-- Render each with current ITV to SVG; commit to `tests/baseline/`.
-- Record the Python call that produced each one.
+**Source the cases from `examples/demo-ITV.ipynb`** (published as the
+[online vignette](https://kinnex-documentation-external.readthedocs.io/en/latest/jupyter-notebooks/demo-ITV.html)).
+It already exercises nearly every rendering capability, so there is no need to
+invent cases. Inventory of what it covers:
 
-These become regression fixtures. Without them the rewrite has no ground truth.
+| Notebook call | Capability exercised |
+|---|---|
+| `plot_interval(Interval(...), with_reads=False)` | explicit interval, coverage only |
+| `plot_feature("APOE", padding_perc=-0.1)` | feature lookup, negative padding |
+| `plot_feature("ACTB"/"LEPR"/"IL32")` | plain feature view, `view_width`, `coverage_height` |
+| `plot_exons("ACTB"/"CAT"/...)` | **exon-slice projection** (experimental mode) |
+| `plot_exons(..., tighter_track=True)` | compact track layout |
+| `plot_exons(..., coverage_bin_size=100)` | `add_binned_coverage` → sediment layers |
+| `plot_exons("PCMT1", coverage_peak_min_distance=20)` | `add_peak_coverage` → sediment layers |
+| `plot_exons("STUB1", priming_orientation="3p")` | strand/priming-aware binning |
+| `plot_exons("AIF1", coverage_tag="XI")` | `add_tagged_coverage` → sediment layers |
+| `plot_exons("JUN"/"ACTB", with_reads=True)` | read-level rendering |
+| `plot_splice_junctions("ACTB", as_widget=True)` | junction view, widget output |
+| `plot_by_features_as_tab([...])` | feature tabs |
+| `plot_by_classification_over_features(...)` | `BAMtagClassification` + `TaggedBAMAnnotationMatching`, and a custom classification subclass |
+| `plot_by_classification_as_tabs("AIF1", ...)` | **classification tab split** — the heaviest case |
+| `save(view, "ACTB_exons_plot.html")` | HTML/PNG export path |
+
+Note this covers **all four sediment-coverage feeders** (binned, peak, tagged,
+stranded), which matters for spike Q6.
+
+Mechanics:
+- Render each with current ITV to SVG; commit to `tests/baseline/`.
+- Record the exact Python call alongside each output.
+- There is **no test suite in this repo** — T0 means building the harness from
+  scratch, not adding cases to an existing one.
+
+**Comparison is approximate, with a human gate.** The new renderer is not
+expected to be pixel- or node-identical, and for the exon-slice mode it should
+be visibly *better* (see capability 2 in
+[00-current-architecture.md](00-current-architecture.md)). So the fixtures are
+a smoke test — do the right features appear, in the right places, at the right
+scale, with the right groupings — not a diff gate. Flag divergences for human
+review rather than failing on them.
+
+**Data dependency:** the notebook needs `examples/data/` (~8 GB: GRCh38 refs,
+GENCODE v39 GTF/BED, subsampled Kinnex bulk and single-cell BAMs). It is
+untracked and sourced from GCS per `examples/data/data_files_needed.txt`.
+Fixtures must not commit the data; record the manifest and expect the harness
+to skip cleanly when it is absent.
 
 ## T1 — Define the payload schema
 
@@ -86,6 +125,50 @@ Change:
 **Backwards compatibility matters here.** ITV is in use. The existing `plot_*`
 API should keep working throughout the trunk work, implemented on top of the
 new payload path once T3 lands.
+
+### Hazard: the import-time kwargs metaprogramming
+
+**Read this before touching `Configuration`.** `convenience.py` lines
+2142–2517 (`# === ITV OPTIONS SPEC: begin/end ===`) contain ~375 lines of
+import-time metaprogramming that T2 will disturb directly:
+
+- `BuildViewRowOptions` is a frozen dataclass that is the **authoritative,
+  hand-maintained** spec of every kwarg `_build_view_row` accepts. It is *not*
+  derived from the signature — only defaults/annotations are pulled from the
+  live function.
+- `_itv__compute_option_exclusions()` statically analyses, via `ast`, which of
+  the 11 `plot_*` methods actually consume or forward each kwarg, so a method
+  is not advertised as accepting options it silently drops.
+- `_itv__augment_docs_from_spec()` appends "Other Parameters" to each
+  docstring at import time.
+- `_itv__install_signatures_from_spec()` rewrites `func.__signature__` on
+  every method with a `**kwargs` catch-all, so `help()` and Jupyter
+  tab-completion show real parameters.
+- `convenience.pyi` is **generated** — never hand-edit. Regenerate with
+  `python tools/generate_convenience_stub.py`.
+
+Why this matters for T2 specifically: splitting each `plot_*` into
+`build_payload_*` plus a thin wrapper changes *exactly what the `ast` pass
+analyses* — which function forwards which kwargs, and through how many hops.
+Get it wrong and the advertised signatures silently drift from reality, or
+import fails in a way that points at the metaprogramming rather than at the
+refactor that caused it.
+
+Practical rules for T2:
+1. Move code in small steps, re-importing the package after each one. Failures
+   surface at **import time**, not at call time.
+2. After any change to which method forwards which kwargs, update
+   `BuildViewRowOptions` by hand and regenerate the stub.
+3. Decide early whether `build_payload_*` functions participate in the spec
+   system at all. Keeping them outside it — plain explicit signatures, with
+   the metaprogramming confined to the back-compat `plot_*` wrappers — is
+   simpler and is the recommended default.
+4. Treat "does `import integrative_transcriptomics_viewer` still work, and
+   does `help(Configuration.plot_exons)` still show real parameters?" as a
+   per-step check, not an end-of-task one.
+
+This is why T2 is not a plan-then-delegate task — see the execution guidance
+in [README.md](README.md#execution-order).
 
 ## T3 — Reimplement the current SVG renderer on top of the payload
 
